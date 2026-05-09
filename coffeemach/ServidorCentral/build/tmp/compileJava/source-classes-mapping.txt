@@ -1,0 +1,87 @@
+servicios/RecetaServicePrx.java
+ servicios.RecetaServicePrx
+servicios/_ServicioAbastecimientoPrxI.java
+ servicios._ServicioAbastecimientoPrxI
+alarma/Alarma.java
+ alarma.Alarma
+ alarma.Alarma$1
+servicios/_AlarmaServicePrxI.java
+ servicios._AlarmaServicePrxI
+ServerControl/ServerControl.java
+ ServerControl.ServerControl
+receta/ProductoReceta.java
+ receta.ProductoReceta
+servicios/_ServicioComLogisticaPrxI.java
+ servicios._ServicioComLogisticaPrxI
+modelo/AlarmaMaquina.java
+ modelo.AlarmaMaquina
+modelo/Operador.java
+ modelo.Operador
+servicios/_VentaServicePrxI.java
+ servicios._VentaServicePrxI
+modelo/ManejadorDatos.java
+ modelo.ManejadorDatos
+servicios/ServicioAbastecimientoPrx.java
+ servicios.ServicioAbastecimientoPrx
+alarma/AlarmasManager.java
+ alarma.AlarmasManager
+ventas/VentasManager.java
+ ventas.VentasManager
+servicios/VentaService.java
+ servicios.VentaService
+ servicios.VentaService$1
+ServerControl/ConsolaAdministracion.java
+ ServerControl.ConsolaAdministracion
+servicios/_RecetaServicePrxI.java
+ servicios._RecetaServicePrxI
+modelo/Maquina.java
+ modelo.Maquina
+servicios/Moneda.java
+ servicios.Moneda
+ServidorCentral.java
+ ServidorCentral
+servicios/ServicioComLogistica.java
+ servicios.ServicioComLogistica
+ servicios.ServicioComLogistica$1
+servicios/AlarmaServicePrx.java
+ servicios.AlarmaServicePrx
+servicios/RecetaService.java
+ servicios.RecetaService
+ servicios.RecetaService$1
+comunicacion/ControlComLogistica.java
+ comunicacion.ControlComLogistica
+interfaz/InterfazRecetas.java
+ interfaz.InterfazRecetas
+modelo/Ingrediente.java
+ modelo.Ingrediente
+modelo/Receta.java
+ modelo.Receta
+modelo/VentasMaquina.java
+ modelo.VentasMaquina
+servicios/AlarmaService.java
+ servicios.AlarmaService
+ servicios.AlarmaService$1
+modelo/AsignacionMaquina.java
+ modelo.AsignacionMaquina
+servicios/StringSeqHelper.java
+ servicios.StringSeqHelper
+modelo/RecetaIngrediente.java
+ modelo.RecetaIngrediente
+servicios/VentaServicePrx.java
+ servicios.VentaServicePrx
+modelo/ConexionBD.java
+ modelo.ConexionBD
+interfaz/ControladorRecetas.java
+ interfaz.ControladorRecetas
+ interfaz.ControladorRecetas$1
+ interfaz.ControladorRecetas$2
+ interfaz.ControladorRecetas$3
+modelo/VentasReceta.java
+ modelo.VentasReceta
+servicios/MapStrIntHelper.java
+ servicios.MapStrIntHelper
+servicios/ServicioAbastecimiento.java
+ servicios.ServicioAbastecimiento
+ servicios.ServicioAbastecimiento$1
+servicios/ServicioComLogisticaPrx.java
+ servicios.ServicioComLogisticaPrx

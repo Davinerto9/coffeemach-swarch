@@ -1,0 +1,27 @@
+<state>
+  <timestamp value='1681408077976' />
+  <sourceSet name='default'>
+    <source name='C:\Users\janus\Desktop\AsistenteInv\coffeemachine\Code\coffeemach\CoffeMach.ice'>
+      <file name='C:\Users\janus\Desktop\AsistenteInv\coffeemachine\Code\coffeemach\cmLogistics\build\generated-src\servicios\ServicioComLogistica.java' />
+      <file name='C:\Users\janus\Desktop\AsistenteInv\coffeemachine\Code\coffeemach\cmLogistics\build\generated-src\servicios\ServicioAbastecimiento.java' />
+      <file name='C:\Users\janus\Desktop\AsistenteInv\coffeemachine\Code\coffeemach\cmLogistics\build\generated-src\servicios\Moneda.java' />
+      <file name='C:\Users\janus\Desktop\AsistenteInv\coffeemachine\Code\coffeemach\cmLogistics\build\generated-src\servicios\AlarmaService.java' />
+      <file name='C:\Users\janus\Desktop\AsistenteInv\coffeemachine\Code\coffeemach\cmLogistics\build\generated-src\servicios\VentaService.java' />
+      <file name='C:\Users\janus\Desktop\AsistenteInv\coffeemachine\Code\coffeemach\cmLogistics\build\generated-src\servicios\RecetaService.java' />
+      <file name='C:\Users\janus\Desktop\AsistenteInv\coffeemachine\Code\coffeemach\cmLogistics\build\generated-src\servicios\StringSeqHelper.java' />
+      <file name='C:\Users\janus\Desktop\AsistenteInv\coffeemachine\Code\coffeemach\cmLogistics\build\generated-src\servicios\MapStrIntHelper.java' />
+      <file name='C:\Users\janus\Desktop\AsistenteInv\coffeemachine\Code\coffeemach\cmLogistics\build\generated-src\servicios\ServicioComLogisticaPrx.java' />
+      <file name='C:\Users\janus\Desktop\AsistenteInv\coffeemachine\Code\coffeemach\cmLogistics\build\generated-src\servicios\_ServicioComLogisticaPrxI.java' />
+      <file name='C:\Users\janus\Desktop\AsistenteInv\coffeemachine\Code\coffeemach\cmLogistics\build\generated-src\servicios\ServicioAbastecimientoPrx.java' />
+      <file name='C:\Users\janus\Desktop\AsistenteInv\coffeemachine\Code\coffeemach\cmLogistics\build\generated-src\servicios\_ServicioAbastecimientoPrxI.java' />
+      <file name='C:\Users\janus\Desktop\AsistenteInv\coffeemachine\Code\coffeemach\cmLogistics\build\generated-src\servicios\AlarmaServicePrx.java' />
+      <file name='C:\Users\janus\Desktop\AsistenteInv\coffeemachine\Code\coffeemach\cmLogistics\build\generated-src\servicios\_AlarmaServicePrxI.java' />
+      <file name='C:\Users\janus\Desktop\AsistenteInv\coffeemachine\Code\coffeemach\cmLogistics\build\generated-src\servicios\VentaServicePrx.java' />
+      <file name='C:\Users\janus\Desktop\AsistenteInv\coffeemachine\Code\coffeemach\cmLogistics\build\generated-src\servicios\_VentaServicePrxI.java' />
+      <file name='C:\Users\janus\Desktop\AsistenteInv\coffeemachine\Code\coffeemach\cmLogistics\build\generated-src\servicios\RecetaServicePrx.java' />
+      <file name='C:\Users\janus\Desktop\AsistenteInv\coffeemachine\Code\coffeemach\cmLogistics\build\generated-src\servicios\_RecetaServicePrxI.java' />
+    </source>
+    <arg value='C:\Program Files\ZeroC\Ice-3.7.6\bin\slice2java.exe' />
+    <arg value='-IC:\Program Files\ZeroC\Ice-3.7.6\slice' />
+  </sourceSet>
+</state>
