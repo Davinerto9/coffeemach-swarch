@@ -10,46 +10,56 @@ public class AlarmaServiceImp implements AlarmaService {
         alarmaServicePrx = a;
     }
 
+    /*
+     * Capa local secundaria. El flujo real de notificacion remota ocurre desde
+     * McControlador.ControladorMQ usando servicios.AlarmaServicePrx con el
+     * contexto completo de maquina, tipo de alarma e insumo.
+     */
     @Override
     public void notificarAbastecimiento() {
-        // TODO Auto-generated method stub
-        throw new UnsupportedOperationException("Unimplemented method 'notificarAbastecimiento'");
+        logNoOp("notificarAbastecimiento",
+                "falta contexto de maquina, tipo de alarma y cantidad");
     }
 
     @Override
     public void notificarReparacion() {
-        // TODO Auto-generated method stub
-        throw new UnsupportedOperationException("Unimplemented method 'notificarReparacion'");
+        logNoOp("notificarReparacion",
+                "falta contexto de maquina y descripcion de reparacion");
     }
 
     @Override
     public void notificarEscasezSuministros() {
-        // TODO Auto-generated method stub
-        throw new UnsupportedOperationException("Unimplemented method 'notificarEscasezSuministros'");
+        logNoOp("notificarEscasezSuministros",
+                "falta contexto de maquina e identificador de suministro");
     }
 
     @Override
     public void notificarError() {
-        // TODO Auto-generated method stub
-        throw new UnsupportedOperationException("Unimplemented method 'notificarError'");
+        logNoOp("notificarError",
+                "falta contexto de maquina y detalle del error");
     }
 
     @Override
     public void notificarAusenciaMoneda() {
-        // TODO Auto-generated method stub
-        throw new UnsupportedOperationException("Unimplemented method 'notificarAusenciaMoneda'");
+        logNoOp("notificarAusenciaMoneda",
+                "falta contexto de maquina y denominacion de moneda");
     }
 
     @Override
     public void notificarEscazesIngredientes() {
-        // TODO Auto-generated method stub
-        throw new UnsupportedOperationException("Unimplemented method 'notificarEscazesIngredientes'");
+        logNoOp("notificarEscazesIngredientes",
+                "falta contexto de maquina e identificador de ingrediente");
     }
 
     @Override
     public void notificarMalFuncionamiento() {
-        // TODO Auto-generated method stub
-        throw new UnsupportedOperationException("Unimplemented method 'notificarMalFuncionamiento'");
+        logNoOp("notificarMalFuncionamiento",
+                "falta contexto de maquina y descripcion del mal funcionamiento");
+    }
+
+    private void logNoOp(String operacion, String motivo) {
+        System.out.println("[CoffeeMach] AlarmaServiceImp." + operacion
+                + " no ejecuta notificacion remota: " + motivo + ".");
     }
 
 }
