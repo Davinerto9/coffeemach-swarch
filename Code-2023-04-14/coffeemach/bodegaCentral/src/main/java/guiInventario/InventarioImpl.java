@@ -1,9 +1,11 @@
-package mantenimientoExistencias;
+package guiInventario;
 
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+
+import mantenimientoExistencias.Inventario;
 
 /**
  * Implementación de Inventario.
@@ -21,6 +23,7 @@ public class InventarioImpl implements Inventario {
 
     public InventarioImpl() {
 
+        existencias.put("INGREDIENTES_agua", 500);
         existencias.put("INGREDIENTES_cafe_molido", 200);
         existencias.put("INGREDIENTES_azucar", 150);
         existencias.put("INGREDIENTES_leche_polvo", 100);
@@ -84,55 +87,63 @@ public class InventarioImpl implements Inventario {
     }
 
     @Override
-    public synchronized String retirarParaAlarma(int tipoAlarma) {
+public synchronized String retirarParaAlarma(int tipoAlarma) {
 
-        String prefijo;
+    switch (tipoAlarma) {
 
-        switch (tipoAlarma) {
+        case 1:
+            return "SIN_RETIRO#- Alarma general no requiere material físico";
 
-            case 1:
-                prefijo = PREF_INGREDIENTES;
-                break;
+        case 2:
+        case 3:
+            return retirarCodigo("MONEDAS_100", 20);
 
-            case 2:
-                prefijo = PREF_MONEDAS;
-                break;
+        case 4:
+        case 5:
+            return retirarCodigo("MONEDAS_200", 20);
 
-            case 3:
-            case 4:
-                prefijo = PREF_SUMINISTROS;
-                break;
+        case 6:
+        case 7:
+            return retirarCodigo("MONEDAS_500", 20);
 
-            case 6:
-                prefijo = PREF_SUMINISTROS;
-                break;
+        case 8:
+        case 12:
+            return retirarCodigo("INGREDIENTES_agua", 50);
 
-            default:
-                prefijo = PREF_INGREDIENTES;
-                break;
-        }
+        case 9:
+        case 13:
+            return retirarCodigo("INGREDIENTES_cafe_molido", 50);
 
-        StringBuilder retirado = new StringBuilder();
+        case 10:
+        case 14:
+            return retirarCodigo("INGREDIENTES_azucar", 50);
 
-        for (Map.Entry<String, Integer> e : existencias.entrySet()) {
+        case 11:
+        case 15:
+            return retirarCodigo("SUMINISTROS_vasos", 50);
 
-            if (e.getKey().startsWith(prefijo)
-                    && e.getValue() > 0) {
-
-                int cantidad =
-                        Math.min(50, e.getValue());
-
-                e.setValue(e.getValue() - cantidad);
-
-                retirado.append(e.getKey())
-                        .append("=")
-                        .append(cantidad)
-                        .append(" ");
-            }
-        }
-
-        return retirado.toString().trim();
+        default:
+            return "ERROR#- Tipo de alarma no soportado en bodega: " + tipoAlarma;
     }
+}
+
+private String retirarCodigo(String codigo, int cantidadSolicitada) {
+
+    Integer disponible = existencias.get(codigo);
+
+    if (disponible == null) {
+        return "ERROR#- No existe el código en inventario: " + codigo;
+    }
+
+    if (disponible <= 0) {
+        return "ERROR#- Sin stock disponible para: " + codigo;
+    }
+
+    int cantidadRetirada = Math.min(cantidadSolicitada, disponible);
+    existencias.put(codigo, disponible - cantidadRetirada);
+
+    return codigo + "=" + cantidadRetirada;
+}
 
     @Override
     public synchronized void abastecerExistencia(

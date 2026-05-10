@@ -1,0 +1,68 @@
+servicios/RecetaServicePrx.java
+ servicios.RecetaServicePrx
+bodega/OrdenObserver.java
+ bodega.OrdenObserver
+servicios/_ServicioAbastecimientoPrxI.java
+ servicios._ServicioAbastecimientoPrxI
+bodega/EstadoOrdenBodega.java
+ bodega.EstadoOrdenBodega
+servicios/_AlarmaServicePrxI.java
+ servicios._AlarmaServicePrxI
+servicios/_ServicioComLogisticaPrxI.java
+ servicios._ServicioComLogisticaPrxI
+servicios/_VentaServicePrxI.java
+ servicios._VentaServicePrxI
+servicios/ServicioAbastecimientoPrx.java
+ servicios.ServicioAbastecimientoPrx
+servicios/ServicioBodegaPrx.java
+ servicios.ServicioBodegaPrx
+servicios/VentaService.java
+ servicios.VentaService
+ servicios.VentaService$1
+bodega/BodegaServiceImpl.java
+ bodega.BodegaServiceImpl
+mantenimientoExistencias/Inventario.java
+ mantenimientoExistencias.Inventario
+servicios/_RecetaServicePrxI.java
+ servicios._RecetaServicePrxI
+servicios/Moneda.java
+ servicios.Moneda
+bodega/OrdenBodega.java
+ bodega.OrdenBodega
+servicios/ServicioComLogistica.java
+ servicios.ServicioComLogistica
+ servicios.ServicioComLogistica$1
+guiInventario/InventarioImpl.java
+ guiInventario.InventarioImpl
+servicios/AlarmaServicePrx.java
+ servicios.AlarmaServicePrx
+BodegaCentral.java
+ BodegaCentral
+servicios/ServicioBodega.java
+ servicios.ServicioBodega
+ servicios.ServicioBodega$1
+servicios/RecetaService.java
+ servicios.RecetaService
+ servicios.RecetaService$1
+bodega/OrdenLoggerObserver.java
+ bodega.OrdenLoggerObserver
+servicios/_ServicioBodegaPrxI.java
+ servicios._ServicioBodegaPrxI
+bodega/Bodega.java
+ bodega.Bodega
+servicios/AlarmaService.java
+ servicios.AlarmaService
+ servicios.AlarmaService$1
+guiInventario/Interfaz.java
+ guiInventario.Interfaz
+servicios/StringSeqHelper.java
+ servicios.StringSeqHelper
+servicios/VentaServicePrx.java
+ servicios.VentaServicePrx
+servicios/MapStrIntHelper.java
+ servicios.MapStrIntHelper
+servicios/ServicioAbastecimiento.java
+ servicios.ServicioAbastecimiento
+ servicios.ServicioAbastecimiento$1
+servicios/ServicioComLogisticaPrx.java
+ servicios.ServicioComLogisticaPrx

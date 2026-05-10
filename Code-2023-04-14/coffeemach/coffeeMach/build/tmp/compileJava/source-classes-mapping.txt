@@ -20,6 +20,8 @@ servicios/_VentaServicePrxI.java
  servicios._VentaServicePrxI
 servicios/ServicioAbastecimientoPrx.java
  servicios.ServicioAbastecimientoPrx
+servicios/ServicioBodegaPrx.java
+ servicios.ServicioBodegaPrx
 productoReceta/Receta.java
  productoReceta.Receta
 suministro/SuministroService.java
@@ -51,6 +53,9 @@ productoReceta/RecetaRepositorio.java
 servicios/RecetaService.java
  servicios.RecetaService
  servicios.RecetaService$1
+servicios/ServicioBodega.java
+ servicios.ServicioBodega
+ servicios.ServicioBodega$1
 McControlador/ControladorMQ.java
  McControlador.ControladorMQ
  McControlador.ControladorMQ$1
@@ -62,6 +67,8 @@ McControlador/ControladorMQ.java
  McControlador.ControladorMQ$7
  McControlador.ControladorMQ$8
  McControlador.ControladorMQ$9
+servicios/_ServicioBodegaPrxI.java
+ servicios._ServicioBodegaPrxI
 McControlador/Venta.java
  McControlador.Venta
 monedero/DepositoMonedas.java

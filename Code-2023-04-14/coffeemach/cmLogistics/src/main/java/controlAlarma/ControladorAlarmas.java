@@ -129,13 +129,22 @@ public class ControladorAlarmas {
         }
     }
 
-    private String despacharMateriales(int idOrden, OrdenTrabajo ot) {
-        AlarmaPendiente alarma = ot.getAlarma();
-        return bodegaCentral.entregarMateriales(
-                idOrden,
-                alarma.getCodMaquina(),
-                alarma.getTipoAlarma());
+   private String despacharMateriales(int idOrden, OrdenTrabajo ot) {
+    AlarmaPendiente alarma = ot.getAlarma();
+
+    String respuesta = bodegaCentral.entregarMateriales(
+            idOrden,
+            alarma.getCodMaquina(),
+            alarma.getTipoAlarma());
+
+    if (respuesta == null || respuesta.startsWith("ERROR")) {
+        throw new RuntimeException(
+            "Bodega rechazó el despacho para OT#"
+            + ot.getConsecutivo() + ": " + respuesta);
     }
+
+    return respuesta;
+}
 
     private void notificarMaquina(OrdenTrabajo ot) {
         AlarmaPendiente alarma = ot.getAlarma();

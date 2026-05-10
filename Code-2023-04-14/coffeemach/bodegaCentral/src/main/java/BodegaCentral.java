@@ -3,7 +3,7 @@ import com.zeroc.Ice.Communicator;
 import com.zeroc.Ice.ObjectAdapter;
 import com.zeroc.Ice.Util;
 import guiInventario.Interfaz;
-import mantenimientoExistencias.InventarioImpl;
+import guiInventario.InventarioImpl;
 
 import javax.swing.SwingUtilities;
 

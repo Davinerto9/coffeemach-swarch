@@ -27,6 +27,8 @@ alarma/AlarmasManager.java
  alarma.AlarmasManager
 ventas/VentasManager.java
  ventas.VentasManager
+servicios/ServicioBodegaPrx.java
+ servicios.ServicioBodegaPrx
 servicios/VentaService.java
  servicios.VentaService
  servicios.VentaService$1
@@ -48,8 +50,13 @@ servicios/AlarmaServicePrx.java
 servicios/RecetaService.java
  servicios.RecetaService
  servicios.RecetaService$1
+servicios/ServicioBodega.java
+ servicios.ServicioBodega
+ servicios.ServicioBodega$1
 comunicacion/ControlComLogistica.java
  comunicacion.ControlComLogistica
+servicios/_ServicioBodegaPrxI.java
+ servicios._ServicioBodegaPrxI
 interfaz/InterfazRecetas.java
  interfaz.InterfazRecetas
 modelo/Ingrediente.java
