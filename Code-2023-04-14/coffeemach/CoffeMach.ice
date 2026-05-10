@@ -52,4 +52,19 @@ module servicios{
 	    string registrarIngrediente(string nombre);
     }
 
+
+    interface ServicioBodega {
+        string generarOrdenEntrega(int codMaquina, int tipoAlarma, string descripcion);
+        string entregarMateriales(int idOrden, int codMaquina, int tipoAlarma);
+        void registrarRecepcionMateriales(int idOrden, string confirmacion);
+        StringSeq consultarInventario();
+        StringSeq consultarMonedas();
+        StringSeq consultarIngredientes();
+        StringSeq consultarSuministros();
+        string entregaKitReparacion(int idOrden, int codMaquina);
+        string retirarExistencias(int tipoAlarma);
+        void abastecerExistencia(string codigo, int cantidad);
+        string separarExistencias(int idOrden, int tipoAlarma);
+    }
+
 }

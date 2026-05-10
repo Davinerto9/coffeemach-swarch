@@ -1,18 +1,17 @@
 package bodega;
 
+import java.util.List;
+
 public interface Bodega {
-    public void consultarMonedas();
 
-    public void consultarIngredientes();
+    // Consultas de inventario por categoría
+    List<String> consultarMonedas();
+    List<String> consultarIngredientes();
+    List<String> consultarSuministros();
 
-    public void consultarSuministros();
-
-    public void entregaKitReparacion();
-
-    public void retirarExistencias();
-
-    public void abastecerExistencia();
-
-    public void separarExistencias();
-
+    // Flujo de órdenes de entrega
+    String entregaKitReparacion(int idOrden, int codMaquina);
+    String retirarExistencias(int tipoAlarma);
+    void   abastecerExistencia(String codigo, int cantidad);
+    String separarExistencias(int idOrden, int tipoAlarma);
 }
