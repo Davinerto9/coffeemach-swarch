@@ -23,6 +23,26 @@ public class ControladorMQ implements Runnable, ServicioAbastecimiento {
 
 	private AlarmaServicePrx alarmaServicePrx;
 	private VentaServicePrx ventasService;
+	private VentaService ventaService;
+	private ingrediente.IngredienteService ingredienteService;
+	private alarma.AlarmaServiceImp alarmaServiceLocal;
+	private suministro.SuministroService suministroService;
+
+	public void setVentaService(VentaService ventaService) {
+		this.ventaService = ventaService;
+	}
+
+	public void setIngredienteService(ingrediente.IngredienteService ingredienteService) {
+		this.ingredienteService = ingredienteService;
+	}
+
+	public void setAlarmaServiceLocal(alarma.AlarmaServiceImp alarmaServiceLocal) {
+		this.alarmaServiceLocal = alarmaServiceLocal;
+	}
+
+	public void setSuministroService(suministro.SuministroService suministroService) {
+		this.suministroService = suministroService;
+	}
 
 	// @Reference
 	private AlarmaRepositorio alarmas = AlarmaRepositorio.getInstance();
@@ -246,60 +266,38 @@ public class ControladorMQ implements Runnable, ServicioAbastecimiento {
 
 		frame.getBtnOrdenar().addActionListener(new ActionListener() {
 			public void actionPerformed(ActionEvent e) {
-
-				int precio = 0;
-				Receta temp = null;
-				List<Receta> rec = recetas.getValues();
-				for (int i = 0; i < rec.size(); i++) {
-
-					temp = rec.get(i);
-
-					if (frame.getComboBoxProducto().getSelectedItem()
-							.equals(temp.getDescripcion())) {
-						precio = rec.get(i).getValor();
-
-						if (Integer.valueOf(frame.getTextAreaSaldo().getText()) >= precio) {
-
-							frame.getTextAreaInfo().setText(
-									frame.getTextAreaInfo().getText()
-											+ "Se ordeno: "
-											+ frame.getComboBoxProducto()
-													.getSelectedItem()
-											+ "\n");
-
-							frame.getTextAreaSaldo().setText(
-									Integer.valueOf(frame.getTextAreaSaldo()
-											.getText()) - precio + "");
-
-							suma -= precio;
-
-							disminuirInsumos(temp);
-
-							devolverMonedas();
-							verificarProductos();
-							// TODO: corregir el idVenta
-							String idV = rec.get(i).getId();
-							ventas.addElement(idV, new Venta(frame.getComboBoxProducto()
-									.getSelectedItem().toString(), idV,
-									precio, new Date()));
-
-							respaldarMaq();
-
-							frame.getTextAreaSaldo().setText("0");
-
-						} else {
-							frame.getTextAreaInfo().setText(
-									frame.getTextAreaInfo().getText()
-											+ "Saldo insuficiente \n");
-
-						}
-
+				String itemSeleccionado = frame.getComboBoxProducto().getSelectedItem().toString();
+				Receta recetaSeleccionada = null;
+				for (Receta r : recetas.getValues()) {
+					if (r.getDescripcion().equals(itemSeleccionado)) {
+						recetaSeleccionada = r;
+						break;
 					}
-
 				}
 
-			}
+				if (recetaSeleccionada != null) {
+					int precio = recetaSeleccionada.getValor();
+					int saldo = Integer.parseInt(frame.getTextAreaSaldo().getText());
 
+					if (saldo >= precio) {
+						if (ventaService.procesarVenta(recetaSeleccionada.getId())) {
+							frame.getTextAreaInfo().setText(frame.getTextAreaInfo().getText() + "Se ordenó: " + itemSeleccionado + "\n");
+							frame.getTextAreaSaldo().setText(String.valueOf(saldo - precio));
+							suma -= precio;
+							
+							devolverMonedas();
+							actualizarInsumosGraf();
+							actualizarRecetasGraf();
+							respaldarMaq();
+							frame.getTextAreaSaldo().setText("0");
+						} else {
+							frame.getTextAreaInfo().setText(frame.getTextAreaInfo().getText() + "Error: Insumos insuficientes\n");
+						}
+					} else {
+						frame.getTextAreaInfo().setText(frame.getTextAreaInfo().getText() + "Saldo insuficiente\n");
+					}
+				}
+			}
 		});
 
 		frame.getBtnMantenimiento().addActionListener(new ActionListener() {
@@ -463,6 +461,9 @@ public class ControladorMQ implements Runnable, ServicioAbastecimiento {
 
 	public void arrancarMaquina() {
 		codMaquina = quemarCodMaquina();
+		if (alarmaServiceLocal != null) {
+			alarmaServiceLocal.setCodMaquina(codMaquina);
+		}
 		// Interfaz
 		actualizarRecetasCombo();
 		actualizarRecetasGraf();
