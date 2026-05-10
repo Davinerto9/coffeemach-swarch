@@ -37,13 +37,14 @@ public class AlarmasManager {
         return null;
     }
 
-    public void desactivarAlarma(int idAlarma, int idMaquina, Date fechaFinal) {
+    public int desactivarAlarma(int idAlarma, int idMaquina, Date fechaFinal) {
         ConexionBD cbd = new ConexionBD(comunicator);
         cbd.conectarBaseDatos();
         ManejadorDatos md = new ManejadorDatos();
         md.setConexion(cbd.getConnection());
-        md.desactivarAlarma(idMaquina, idAlarma, fechaFinal);
+        int filasActualizadas = md.desactivarAlarma(idMaquina, idAlarma, fechaFinal);
         cbd.cerrarConexion();
+        return filasActualizadas;
     }
 
 }

@@ -76,79 +76,90 @@ public class ControladorMQ implements Runnable, ServicioAbastecimiento {
 
 	@Override
 	public void abastecer(int codMaquina, int idAlarma, Current current) {
-		// TODO Auto-generated method stub
 		int cantidad = 0;
-		System.out.println("Entra a abastecer");
+		System.out.println("[CoffeeMach] Solicitud de abastecimiento recibida. maquina="
+				+ codMaquina + ", tipoAlarma=" + idAlarma
+				+ ", maquinaLocal=" + this.codMaquina);
 
-		System.out.println(codMaquina + "-" + idAlarma + "-" + this.codMaquina);
+		if (codMaquina != this.codMaquina) {
+			System.out.println("[CoffeeMach] Solicitud ignorada: maquina destino "
+					+ codMaquina + " no coincide con maquina local "
+					+ this.codMaquina);
+			return;
+		}
 
-		if (codMaquina == this.codMaquina) {
+		switch (idAlarma) {
+			case 1:
+				cantidad += recargarIngredienteConCantidad("Agua");
+				cantidad += recargarIngredienteConCantidad("Cafe");
+				cantidad += recargarIngredienteConCantidad("Azucar");
+				System.out.println("[CoffeeMach] Tipo 1 recibido: recarga conservadora de ingredientes principales.");
+				break;
+			case 2:
+				cantidad = recargarMoneda("100", 20);
+				break;
+			case 3:
+				cantidad = recargarMoneda("200", 20);
+				break;
+			case 4:
+				cantidad = recargarMoneda("500", 20);
+				break;
+			case 5:
+				cantidad = recargarIngredienteConCantidad("Vaso");
+				break;
+			case 6:
+				System.out.println("[CoffeeMach] Tipo 6 recibido: mantenimiento/mal funcionamiento atendido.");
+				break;
+			case 7:
+				cantidad = recargarMoneda("500", 20);
+				break;
+			case 8:
+			case 12:
+				cantidad = recargarIngredienteConCantidad("Agua");
+				break;
+			case 9:
+			case 13:
+				cantidad = recargarIngredienteConCantidad("Cafe");
+				break;
+			case 10:
+			case 14:
+				cantidad = recargarIngredienteConCantidad("Azucar");
+				break;
+			case 11:
+			case 15:
+				cantidad = recargarIngredienteConCantidad("Vaso");
+				break;
+			default:
+				System.out.println("[CoffeeMach] Tipo de alarma no reconocido: "
+						+ idAlarma + ". No se recargo ningun recurso.");
+				break;
+		}
 
-			System.out.println("Entra al primer if");
+		quitarAlarma(idAlarma + "");
 
-			if (idAlarma == 1) {
-				// Habilita Interfaz
-			}
-
-			else if (idAlarma == 2 | idAlarma == 3) {
-				// Depositos Monedas
-				DepositoMonedas moneda = monedas.findByKey("100");
-				moneda.setCantidad(20);
-				monedas.addElement("100", moneda);
-
-				if (idAlarma == 3) {
-
-				}
-
-			} else if (idAlarma == 4 | idAlarma == 5) {
-				// Depositos Monedas
-				DepositoMonedas moneda = monedas.findByKey("200");
-				moneda.setCantidad(20);
-				monedas.addElement("200", moneda);
-			}
-
-			else if (idAlarma == 6 | idAlarma == 7) {
-				// Depositos Monedas
-				DepositoMonedas moneda = monedas.findByKey("500");
-				moneda.setCantidad(20);
-				monedas.addElement("500", moneda);
-			}
-
-			else if (idAlarma == 8 | idAlarma == 12) {
-				recargarIngredienteEspecifico("Agua");
-			}
-
-			else if (idAlarma == 9 | idAlarma == 13) {
-				recargarIngredienteEspecifico("Cafe");
-			}
-
-			else if (idAlarma == 10 | idAlarma == 14) {
-				recargarIngredienteEspecifico("Azucar");
-			}
-
-			else if (idAlarma == 11 | idAlarma == 15) {
-				recargarIngredienteEspecifico("Vaso");
-			}
-
-			quitarAlarma(idAlarma + "");
-
-			if (alarmas.getValues().isEmpty()) {
+		if (alarmas.getValues().isEmpty() && frame != null) {
 				frame.setEnabled(true);
 				frame.interfazHabilitada();
 
-				System.out.println("Entra al if de habilitacion");
-			}
+			System.out.println("[CoffeeMach] Interfaz habilitada: no quedan alarmas locales.");
+		}
 
-			// Respaldo
-			respaldarMaq();
-			actualizarRecetasGraf();
-			actualizarInsumosGraf();
-			actualizarAlarmasGraf();
+		// Respaldo
+		respaldarMaq();
+		actualizarRecetasGraf();
+		actualizarInsumosGraf();
+		actualizarAlarmasGraf();
 
-			// ResetAlarmas
+		// ResetAlarmas
 
-			// Envio a Servidor
+		// Envio a Servidor
+		if (alarmaServicePrx != null) {
 			alarmaServicePrx.recibirNotificacionAbastesimiento(codMaquina, idAlarma + "", cantidad);
+			System.out.println("[CoffeeMach] Notificacion de abastecimiento enviada. maquina="
+					+ codMaquina + ", tipoAlarma=" + idAlarma
+					+ ", cantidad=" + cantidad);
+		} else {
+			System.out.println("[CoffeeMach] No se notifico al ServidorCentral: alarmaServicePrx es null.");
 		}
 	}
 
@@ -157,9 +168,43 @@ public class ControladorMQ implements Runnable, ServicioAbastecimiento {
 	}
 
 	public void recargarIngredienteEspecifico(String ingrediente) {
+		recargarIngredienteConCantidad(ingrediente);
+	}
+
+	private int recargarMoneda(String denominacion, int cantidadObjetivo) {
+		DepositoMonedas moneda = monedas.findByKey(denominacion);
+		if (moneda == null) {
+			System.out.println("[CoffeeMach] No se recargo moneda " + denominacion
+					+ ": deposito no existe.");
+			return 0;
+		}
+
+		int cantidadAnterior = moneda.getCantidad();
+		moneda.setCantidad(cantidadObjetivo);
+		monedas.addElement(denominacion, moneda);
+		int cantidadRecargada = Math.max(0, moneda.getCantidad() - cantidadAnterior);
+		System.out.println("[CoffeeMach] Moneda " + denominacion + " recargada. anterior="
+				+ cantidadAnterior + ", actual=" + moneda.getCantidad()
+				+ ", recargada=" + cantidadRecargada);
+		return cantidadRecargada;
+	}
+
+	private int recargarIngredienteConCantidad(String ingrediente) {
 		Ingrediente ing = ingredientes.findByKey(ingrediente);
+		if (ing == null) {
+			System.out.println("[CoffeeMach] No se recargo insumo " + ingrediente
+					+ ": no existe en repositorio local.");
+			return 0;
+		}
+
+		double cantidadAnterior = ing.getCantidad();
 		ing.setCantidad(ing.getMaximo());
 		ingredientes.addElement(ingrediente, ing);
+		int cantidadRecargada = (int) Math.max(0, ing.getCantidad() - cantidadAnterior);
+		System.out.println("[CoffeeMach] Insumo " + ingrediente + " recargado. anterior="
+				+ cantidadAnterior + ", actual=" + ing.getCantidad()
+				+ ", recargada=" + cantidadRecargada);
+		return cantidadRecargada;
 	}
 
 	public void eventos() {

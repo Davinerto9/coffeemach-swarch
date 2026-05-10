@@ -81,7 +81,7 @@ public class ControladorAlarmas {
             String ordenEntrega = solicitarMaterialesABodega(ordenTrabajo);
             int idOrden = extraerIdOrdenEntrega(ordenEntrega);
 
-            // Paso 3: separar existencias (→ EN_PICKING) ← NUEVO
+            // Paso 3: separar existencias (→ EN_PREPARACION / LISTA_PARA_DESPACHO)
             separarExistenciasEnBodega(idOrden, ordenTrabajo);
 
             // Paso 4: despachar materiales (→ DESPACHADA)
@@ -121,14 +121,14 @@ public class ControladorAlarmas {
                 alarma.getDescripcion());
     }
 
-    // NUEVO: llama separarExistencias y valida que bodega haya aceptado el picking
+    // Llama separarExistencias y valida que bodega haya preparado los materiales.
     private void separarExistenciasEnBodega(int idOrden, OrdenTrabajo ot) {
         String respuesta = bodegaCentral.separarExistencias(
                 idOrden,
                 ot.getAlarma().getTipoAlarma());
         if (respuesta == null || respuesta.startsWith("ERROR")) {
             throw new RuntimeException(
-                    "Bodega rechazo el picking para OT#"
+                    "Bodega rechazo la preparacion de materiales para OT#"
                             + ot.getConsecutivo() + ": " + respuesta);
         }
     }
@@ -164,10 +164,16 @@ public class ControladorAlarmas {
 
     private String construirReporte(String ruta, OrdenTrabajo ot,
             String ordenEntrega, String comprobante) {
-        return ruta
-                + "\n" + ot
-                + "\nOrden entrega: " + ordenEntrega
-                + "\nComprobante: " + comprobante;
+        AlarmaPendiente alarma = ot.getAlarma();
+        return "OT resuelta"
+                + "\nID OT: " + ot.getConsecutivo()
+                + "\nMaquina: " + alarma.getCodMaquina()
+                + "\nTipo alarma: " + alarma.getTipoAlarma()
+                + "\nDescripcion: " + alarma.getDescripcion()
+                + "\nRuta: " + ruta
+                + "\nOrden de bodega: " + ordenEntrega
+                + "\nComprobante de despacho: " + comprobante
+                + "\nEstado final: " + ot.getEstado().name();
     }
 
     private int extraerIdOrdenEntrega(String ordenEntrega) {

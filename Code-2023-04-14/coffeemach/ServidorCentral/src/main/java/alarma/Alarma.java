@@ -52,13 +52,86 @@ public class Alarma implements AlarmaService {
 
     @Override
     public void recibirNotificacionAbastesimiento(int idMaq, String idInsumo, int cantidad, Current current) {
-        // TODO validar el insumo
-        manager.desactivarAlarma(ALARMA_INGREDIENTE, idMaq, new Date());
+        Integer tipoRecibido = parsearTipoAlarma(idInsumo);
+
+        if (tipoRecibido == null) {
+            System.out.println("[ServidorCentral] Abastecimiento recibido con idInsumo no numerico: "
+                    + idInsumo + ", maquina " + idMaq);
+            return;
+        }
+
+        System.out.println("[ServidorCentral] Abastecimiento recibido para maquina "
+                + idMaq + ", tipo recibido " + tipoRecibido
+                + ", cantidad " + cantidad);
+
+        Date fechaFinal = new Date();
+        int filasActualizadas = manager.desactivarAlarma(tipoRecibido, idMaq, fechaFinal);
+
+        if (filasActualizadas > 0) {
+            System.out.println("[ServidorCentral] Alarma cerrada con tipo exacto "
+                    + tipoRecibido + " para maquina " + idMaq);
+            return;
+        }
+
+        int tipoNormalizado = normalizarTipoAlarma(tipoRecibido);
+        if (tipoNormalizado == tipoRecibido) {
+            System.out.println("[ServidorCentral] No habia alarma abierta para tipo "
+                    + tipoRecibido + " en maquina " + idMaq);
+            return;
+        }
+
+        filasActualizadas = manager.desactivarAlarma(tipoNormalizado, idMaq, fechaFinal);
+        System.out.println("[ServidorCentral] Fallback de cierre: tipo recibido "
+                + tipoRecibido + ", tipo normalizado " + tipoNormalizado
+                + ", filas cerradas " + filasActualizadas);
     }
 
     @Override
     public void recibirNotificacionMalFuncionamiento(int idMaq, String descri, Current current) {
         manager.alarmaMaquina(ALARMA_MAL_FUNCIONAMIENTO, idMaq, new Date());
+    }
+
+    private Integer parsearTipoAlarma(String idInsumo) {
+        if (idInsumo == null) {
+            return null;
+        }
+
+        try {
+            return Integer.parseInt(idInsumo.trim());
+        } catch (NumberFormatException e) {
+            return null;
+        }
+    }
+
+    private int normalizarTipoAlarma(int tipoAlarma) {
+        switch (tipoAlarma) {
+            case 1:
+                return ALARMA_INGREDIENTE;
+            case 2:
+                return ALARMA_MONEDA_CIEN;
+            case 3:
+                return ALARMA_MONEDA_DOS;
+            case 4:
+                return ALARMA_MONEDA_QUI;
+            case 5:
+                return ALARMA_SUMINISTRO;
+            case 6:
+                return ALARMA_MAL_FUNCIONAMIENTO;
+            case 7:
+                return ALARMA_MONEDA_QUI;
+            case 8:
+            case 9:
+            case 10:
+            case 12:
+            case 13:
+            case 14:
+                return ALARMA_INGREDIENTE;
+            case 11:
+            case 15:
+                return ALARMA_SUMINISTRO;
+            default:
+                return tipoAlarma;
+        }
     }
 
 }

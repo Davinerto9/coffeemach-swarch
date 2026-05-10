@@ -47,7 +47,7 @@ public class InventarioImpl implements Inventario {
                 k.startsWith(PREF_INGREDIENTES) ? v + 50 : v);
 
         System.out.println(
-                "Ingredientes abastecidos (+50 cada uno).");
+                "[Bodega] Ingredientes abastecidos (+50 cada uno).");
     }
 
     @Override
@@ -57,7 +57,7 @@ public class InventarioImpl implements Inventario {
                 k.startsWith(PREF_MONEDAS) ? v + 100 : v);
 
         System.out.println(
-                "Monedas abastecidas (+100 cada denominacion).");
+                "[Bodega] Monedas abastecidas (+100 cada denominacion).");
     }
 
     @Override
@@ -67,7 +67,7 @@ public class InventarioImpl implements Inventario {
                 k.startsWith(PREF_SUMINISTROS) ? v + 50 : v);
 
         System.out.println(
-                "Suministros abastecidos (+50 cada uno).");
+                "[Bodega] Suministros abastecidos (+50 cada uno).");
     }
 
     // ── Métodos usados por BodegaServiceImpl ───────────────────────────────
@@ -91,21 +91,28 @@ public synchronized String retirarParaAlarma(int tipoAlarma) {
 
     switch (tipoAlarma) {
 
+        // Tipos centrales usados por ServidorCentral y cmLogistics.
         case 1:
-            return "SIN_RETIRO#- Alarma general no requiere material físico";
+            return retirarGrupo(PREF_INGREDIENTES, 50);
 
         case 2:
-        case 3:
             return retirarCodigo("MONEDAS_100", 20);
 
-        case 4:
-        case 5:
+        case 3:
             return retirarCodigo("MONEDAS_200", 20);
 
-        case 6:
-        case 7:
+        case 4:
             return retirarCodigo("MONEDAS_500", 20);
 
+        case 5:
+            return retirarCodigo("SUMINISTROS_vasos", 50);
+
+        case 6:
+            return retirarCodigo("SUMINISTROS_kit_reparacion", 1);
+
+        // Tipos locales antiguos no conflictivos usados por CoffeeMach.
+        case 7:
+            return retirarCodigo("MONEDAS_500", 20);
         case 8:
         case 12:
             return retirarCodigo("INGREDIENTES_agua", 50);
@@ -127,6 +134,31 @@ public synchronized String retirarParaAlarma(int tipoAlarma) {
     }
 }
 
+private String retirarGrupo(String prefijo, int cantidadSolicitada) {
+    StringBuilder detalle = new StringBuilder();
+    int totalRetirado = 0;
+
+    for (String codigo : new ArrayList<String>(existencias.keySet())) {
+        if (codigo.startsWith(prefijo)) {
+            String retiro = retirarCodigo(codigo, cantidadSolicitada);
+            if (!retiro.startsWith("ERROR")) {
+                if (detalle.length() > 0) {
+                    detalle.append(",");
+                }
+                detalle.append(retiro);
+                String[] partes = retiro.split("=");
+                totalRetirado += Integer.parseInt(partes[1]);
+            }
+        }
+    }
+
+    if (totalRetirado == 0) {
+        return "ERROR#- Sin stock disponible para grupo: " + prefijo;
+    }
+
+    return detalle.toString();
+}
+
 private String retirarCodigo(String codigo, int cantidadSolicitada) {
 
     Integer disponible = existencias.get(codigo);
@@ -142,6 +174,11 @@ private String retirarCodigo(String codigo, int cantidadSolicitada) {
     int cantidadRetirada = Math.min(cantidadSolicitada, disponible);
     existencias.put(codigo, disponible - cantidadRetirada);
 
+    System.out.println("[Bodega] Inventario descontado. codigo=" + codigo
+            + ", anterior=" + disponible
+            + ", retirado=" + cantidadRetirada
+            + ", actual=" + existencias.get(codigo));
+
     return codigo + "=" + cantidadRetirada;
 }
 
@@ -156,7 +193,7 @@ private String retirarCodigo(String codigo, int cantidadSolicitada) {
                 Integer::sum);
 
         System.out.println(
-                "Abastecido "
+                "[Bodega] Abastecido "
                         + codigo
                         + " +"
                         + cantidad

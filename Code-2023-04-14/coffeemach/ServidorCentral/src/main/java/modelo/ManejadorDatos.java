@@ -69,9 +69,9 @@ public class ManejadorDatos {
 	 * @param idAlarma
 	 * @param fechafinal
 	 */
-	public void desactivarAlarma(int idMaquina, int idAlarma,
+	public int desactivarAlarma(int idMaquina, int idAlarma,
 			java.util.Date fechafinal) {
-		String updateAlarma = "UPDATE ALARMA_MAQUINA SET FECHA_FINAL = ? WHERE ID_ALARMA = ? AND ID_MAQUINA = ?";
+		String updateAlarma = "UPDATE ALARMA_MAQUINA SET FECHA_FINAL = ? WHERE ID_ALARMA = ? AND ID_MAQUINA = ? AND FECHA_FINAL IS NULL";
 
 		try {
 			PreparedStatement ps = conexion.prepareStatement(updateAlarma);
@@ -79,11 +79,16 @@ public class ManejadorDatos {
 			ps.setInt(2, idAlarma);
 			ps.setInt(3, idMaquina);
 
-			ps.executeUpdate();
+			int filasActualizadas = ps.executeUpdate();
+			System.out.println("[ServidorCentral] Alarmas cerradas para maquina "
+					+ idMaquina + ", tipo " + idAlarma + ": "
+					+ filasActualizadas);
+			return filasActualizadas;
 
 		} catch (SQLException e) {
 			e.printStackTrace();
 		}
+		return 0;
 	}
 
 	/**

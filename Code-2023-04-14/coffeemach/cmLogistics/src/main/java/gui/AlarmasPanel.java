@@ -189,6 +189,7 @@ public class AlarmasPanel extends JPanel {
         String[] pasos = {
             "Calcular ruta",
             "Solicitar materiales a bodega",
+            "Preparar existencias en bodega",
             "Despachar materiales",
             "Notificar máquina (abastecer)",
             "Confirmar recepción en bodega"
@@ -275,11 +276,19 @@ public class AlarmasPanel extends JPanel {
                         JOptionPane.showMessageDialog(AlarmasPanel.this,
                             resultado, "Resultado OT #" + ot.getConsecutivo(),
                             JOptionPane.INFORMATION_MESSAGE);
+                        recargar();
                     } catch (Exception ex) {
-                        lblComprobante.setText("✗ Error: " + ex.getMessage());
+                        String mensaje = ex.getCause() != null ? ex.getCause().getMessage() : ex.getMessage();
+                        lblComprobante.setText("✗ No resuelta — " + mensaje);
                         lblComprobante.setForeground(new Color(0xA32D2D));
-                        btnResolver.setText("Error — ver log");
+                        btnResolver.setText("Reintentar");
                         btnResolver.setBackground(new Color(0xA32D2D));
+                        btnResolver.setEnabled(true);
+                        btnOT.setEnabled(true);
+                        JOptionPane.showMessageDialog(AlarmasPanel.this,
+                            "No se pudo resolver la alarma.\n\nDetalle: " + mensaje,
+                            "Error al resolver OT #" + ot.getConsecutivo(),
+                            JOptionPane.ERROR_MESSAGE);
                     }
                     panel.revalidate();
                 }

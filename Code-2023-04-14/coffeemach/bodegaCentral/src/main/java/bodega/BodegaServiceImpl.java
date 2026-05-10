@@ -35,7 +35,10 @@ public String generarOrdenEntrega(int codMaquina, int tipoAlarma, String descrip
 
     ordenes.put(orden.getId(), orden);
 
-    System.out.println("[Bodega] Orden generada: " + orden.getId());
+    System.out.println("[Bodega] Orden generada. idOrden=" + orden.getId()
+        + ", maquina=" + codMaquina
+        + ", tipoAlarma=" + tipoAlarma
+        + ", descripcion=" + descripcion);
 
     return orden.getId() + "#" + orden.toResumen();
 }
@@ -45,18 +48,25 @@ public String separarExistencias(int idOrden, int tipoAlarma, com.zeroc.Ice.Curr
     OrdenBodega orden = ordenes.get(idOrden);
 
     if (orden == null) {
-        return "ERROR#- Orden no encontrada: " + idOrden;
+        String error = "Orden no encontrada: " + idOrden;
+        System.err.println("[Bodega] ERROR separarExistencias: " + error);
+        return "ERROR#- " + error;
     }
 
     if (orden.getEstado() != EstadoOrdenBodega.REGISTRADA) {
-        return "ERROR#- La orden debe estar en REGISTRADA para separar existencias. Estado actual: " + orden.getEstado();
+        String error = "La orden debe estar en REGISTRADA para separar existencias. Estado actual: " + orden.getEstado();
+        System.err.println("[Bodega] ERROR separarExistencias: idOrden="
+            + idOrden + ", " + error);
+        return "ERROR#- " + error;
     }
 
     orden.setEstado(EstadoOrdenBodega.EN_PREPARACION);
-    System.out.println("[Bodega] Orden " + idOrden + " en preparación");
+    System.out.println("[Bodega] Orden " + idOrden
+        + " en EN_PREPARACION para tipoAlarma=" + tipoAlarma);
 
     orden.setEstado(EstadoOrdenBodega.LISTA_PARA_DESPACHO);
-    System.out.println("[Bodega] Orden " + idOrden + " lista para despacho");
+    System.out.println("[Bodega] Orden " + idOrden
+        + " en LISTA_PARA_DESPACHO");
 
     return "LISTA_PARA_DESPACHO#" + orden.toResumen() + "#tipoAlarma=" + tipoAlarma;
 }
@@ -66,37 +76,57 @@ public String entregarMateriales(int idOrden, int codMaquina, int tipoAlarma, co
     OrdenBodega orden = ordenes.get(idOrden);
 
     if (orden == null) {
-        return "ERROR#- Orden de entrega no existe: " + idOrden;
+        String error = "Orden de entrega no existe: " + idOrden;
+        System.err.println("[Bodega] ERROR entregarMateriales: " + error);
+        return "ERROR#- " + error;
     }
 
     if (orden.getCodMaquina() != codMaquina) {
-        return "ERROR#- La orden no pertenece a la máquina " + codMaquina;
+        String error = "La orden " + idOrden + " pertenece a la maquina "
+            + orden.getCodMaquina() + ", no a " + codMaquina;
+        System.err.println("[Bodega] ERROR entregarMateriales: " + error);
+        return "ERROR#- " + error;
     }
 
     if (orden.getEstado() != EstadoOrdenBodega.LISTA_PARA_DESPACHO) {
-        return "ERROR#- La orden debe estar en LISTA_PARA_DESPACHO. Estado actual: " + orden.getEstado();
+        String error = "La orden debe estar en LISTA_PARA_DESPACHO. Estado actual: " + orden.getEstado();
+        System.err.println("[Bodega] ERROR entregarMateriales: idOrden="
+            + idOrden + ", " + error);
+        return "ERROR#- " + error;
     }
 
     String retiro = inventario.retirarParaAlarma(tipoAlarma);
 
     if (retiro == null || retiro.isBlank() || retiro.startsWith("ERROR")) {
-        return "ERROR#- No se pudieron retirar existencias para la alarma " + tipoAlarma + ". Detalle: " + retiro;
+        String error = "No se pudieron retirar existencias para la alarma "
+            + tipoAlarma + ". Detalle: " + retiro;
+        System.err.println("[Bodega] ERROR entregarMateriales: idOrden="
+            + idOrden + ", " + error);
+        return "ERROR#- " + error;
     }
 
     orden.setEstado(EstadoOrdenBodega.DESPACHADA);
 
-    System.out.println("[Bodega] Materiales despachados para orden " + idOrden);
+    System.out.println("[Bodega] Materiales despachados. idOrden=" + idOrden
+        + ", maquina=" + codMaquina
+        + ", tipoAlarma=" + tipoAlarma
+        + ", recursoRetirado=" + retiro);
     return "DESPACHADA#" + orden.toResumen() + "#" + retiro;
 }
 
     @Override
     public void registrarRecepcionMateriales(int idOrden, String evidencia, com.zeroc.Ice.Current current) {
         OrdenBodega orden = ordenes.get(idOrden);
-        if (orden != null) {
-            orden.setEstado(EstadoOrdenBodega.RECIBIDA);
-            orden.registrarEvidenciaRecepcion(evidencia);
-            System.out.println("[Bodega] Recepción confirmada de orden " + idOrden);
+        if (orden == null) {
+            System.err.println("[Bodega] ERROR registrarRecepcionMateriales: orden no encontrada "
+                + idOrden + ", evidencia=" + evidencia);
+            return;
         }
+        orden.setEstado(EstadoOrdenBodega.RECIBIDA);
+        orden.registrarEvidenciaRecepcion(evidencia);
+        System.out.println("[Bodega] Recepcion confirmada. idOrden=" + idOrden
+            + ", estado=" + orden.getEstado()
+            + ", evidencia=" + evidencia);
     }
 
     // === Métodos de consulta ===

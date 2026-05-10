@@ -15,7 +15,7 @@ public class DashboardFrame extends JFrame {
     private final ControladorAlarmas controlador;
 
     private AlarmasPanel   alarmasPanel;
-    private OrdenesTrabajo ordenesPanel;
+    private OrdenMantenimientoUI ordenesPanel;
     private InventarioPanel inventarioPanel;
     private MaquinasPanel   maquinasPanel;
 
@@ -176,7 +176,7 @@ public class DashboardFrame extends JFrame {
         contentArea.setBackground(Color.WHITE);
 
         alarmasPanel    = new AlarmasPanel(controlador, this);
-        ordenesPanel    = new OrdenesTrabajo(controlador);
+        ordenesPanel    = new OrdenMantenimientoUI(controlador);
         inventarioPanel = new InventarioPanel(controlador);
         maquinasPanel   = new MaquinasPanel(controlador);
 
