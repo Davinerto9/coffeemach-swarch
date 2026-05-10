@@ -1,6 +1,6 @@
 package tecnicoMantenimiento;
 
-public enum EstadoOrdenTrabajo {
+public enum OrdenMantenimiento {
     PENDIENTE,
     EN_PROCESO,
     RESUELTA,

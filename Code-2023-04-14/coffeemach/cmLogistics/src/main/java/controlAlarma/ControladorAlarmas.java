@@ -3,34 +3,36 @@ package controlAlarma;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
+
+import Ubicacion.Ubicacion;
 import servicios.ServicioAbastecimientoPrx;
 import servicios.ServicioBodegaPrx;
 import servicios.ServicioComLogisticaPrx;
-import tecnicoMantenimiento.EstadoOrdenTrabajo;
+import tecnicoMantenimiento.OrdenMantenimiento;
 import tecnicoMantenimiento.OrdenTrabajo;
-import zonaGeografica.ZonaGeografica;
 
 public class ControladorAlarmas {
 
     private final ServicioComLogisticaPrx servidorCentral;
     private final ServicioAbastecimientoPrx maquinaCafe;
     private final ServicioBodegaPrx bodegaCentral;
-    private final ZonaGeografica zonaGeografica = new ZonaGeografica();
+    private final Ubicacion zonaGeografica = new Ubicacion();
     private final AtomicInteger consecutivoOrdenTrabajo = new AtomicInteger(1);
 
     private int codigoOperadorActivo = -1;
 
     public ControladorAlarmas(ServicioComLogisticaPrx servidorCentral,
-                               ServicioAbastecimientoPrx maquinaCafe,
-                               ServicioBodegaPrx bodegaCentral) {
+            ServicioAbastecimientoPrx maquinaCafe,
+            ServicioBodegaPrx bodegaCentral) {
         this.servidorCentral = servidorCentral;
-        this.maquinaCafe     = maquinaCafe;
-        this.bodegaCentral   = bodegaCentral;
+        this.maquinaCafe = maquinaCafe;
+        this.bodegaCentral = bodegaCentral;
     }
 
     public boolean iniciarSesion(int codigoOperador, String password) {
         boolean ok = servidorCentral.inicioSesion(codigoOperador, password);
-        if (ok) this.codigoOperadorActivo = codigoOperador;
+        if (ok)
+            this.codigoOperadorActivo = codigoOperador;
         return ok;
     }
 
@@ -49,7 +51,8 @@ public class ControladorAlarmas {
         List<String> datos = servidorCentral
                 .asignacionMaquinasDesabastecidas(codigoOperadorActivo);
         List<AlarmaPendiente> alarmas = new ArrayList<>();
-        if (datos == null) return alarmas;
+        if (datos == null)
+            return alarmas;
         for (String dato : datos) {
             try {
                 alarmas.add(AlarmaPendiente.desdeCadena(dato));
@@ -68,7 +71,7 @@ public class ControladorAlarmas {
 
     public String resolverAlarma(OrdenTrabajo ordenTrabajo) {
         verificarSesion();
-        ordenTrabajo.setEstado(EstadoOrdenTrabajo.EN_PROCESO);
+        ordenTrabajo.setEstado(OrdenMantenimiento.EN_PROCESO);
 
         try {
             // Paso 1: calcular ruta
@@ -78,7 +81,7 @@ public class ControladorAlarmas {
             String ordenEntrega = solicitarMaterialesABodega(ordenTrabajo);
             int idOrden = extraerIdOrdenEntrega(ordenEntrega);
 
-            // Paso 3: separar existencias (→ EN_PICKING)  ← NUEVO
+            // Paso 3: separar existencias (→ EN_PICKING) ← NUEVO
             separarExistenciasEnBodega(idOrden, ordenTrabajo);
 
             // Paso 4: despachar materiales (→ DESPACHADA)
@@ -91,15 +94,16 @@ public class ControladorAlarmas {
             confirmarRecepcionEnBodega(idOrden, ordenTrabajo);
 
             ordenTrabajo.setComprobanteBodega(comprobante);
-            ordenTrabajo.setEstado(EstadoOrdenTrabajo.RESUELTA);
+            ordenTrabajo.setEstado(OrdenMantenimiento.RESUELTA);
 
             return construirReporte(ruta, ordenTrabajo, ordenEntrega, comprobante);
 
         } catch (Exception e) {
-            ordenTrabajo.setEstado(EstadoOrdenTrabajo.CANCELADA);
+            ordenTrabajo.setEstado(OrdenMantenimiento.CANCELADA);
             throw new RuntimeException(
-                "Fallo al resolver OT#" + ordenTrabajo.getConsecutivo()
-                + ": " + e.getMessage(), e);
+                    "Fallo al resolver OT#" + ordenTrabajo.getConsecutivo()
+                            + ": " + e.getMessage(),
+                    e);
         }
     }
 
@@ -124,27 +128,27 @@ public class ControladorAlarmas {
                 ot.getAlarma().getTipoAlarma());
         if (respuesta == null || respuesta.startsWith("ERROR")) {
             throw new RuntimeException(
-                "Bodega rechazo el picking para OT#"
-                + ot.getConsecutivo() + ": " + respuesta);
+                    "Bodega rechazo el picking para OT#"
+                            + ot.getConsecutivo() + ": " + respuesta);
         }
     }
 
-   private String despacharMateriales(int idOrden, OrdenTrabajo ot) {
-    AlarmaPendiente alarma = ot.getAlarma();
+    private String despacharMateriales(int idOrden, OrdenTrabajo ot) {
+        AlarmaPendiente alarma = ot.getAlarma();
 
-    String respuesta = bodegaCentral.entregarMateriales(
-            idOrden,
-            alarma.getCodMaquina(),
-            alarma.getTipoAlarma());
+        String respuesta = bodegaCentral.entregarMateriales(
+                idOrden,
+                alarma.getCodMaquina(),
+                alarma.getTipoAlarma());
 
-    if (respuesta == null || respuesta.startsWith("ERROR")) {
-        throw new RuntimeException(
-            "Bodega rechazó el despacho para OT#"
-            + ot.getConsecutivo() + ": " + respuesta);
+        if (respuesta == null || respuesta.startsWith("ERROR")) {
+            throw new RuntimeException(
+                    "Bodega rechazó el despacho para OT#"
+                            + ot.getConsecutivo() + ": " + respuesta);
+        }
+
+        return respuesta;
     }
-
-    return respuesta;
-}
 
     private void notificarMaquina(OrdenTrabajo ot) {
         AlarmaPendiente alarma = ot.getAlarma();
@@ -155,27 +159,27 @@ public class ControladorAlarmas {
         bodegaCentral.registrarRecepcionMateriales(
                 idOrden,
                 "Recepcion confirmada por operador "
-                + codigoOperadorActivo + " para " + ot);
+                        + codigoOperadorActivo + " para " + ot);
     }
 
     private String construirReporte(String ruta, OrdenTrabajo ot,
-                                     String ordenEntrega, String comprobante) {
+            String ordenEntrega, String comprobante) {
         return ruta
                 + "\n" + ot
                 + "\nOrden entrega: " + ordenEntrega
-                + "\nComprobante: "   + comprobante;
+                + "\nComprobante: " + comprobante;
     }
 
     private int extraerIdOrdenEntrega(String ordenEntrega) {
         if (ordenEntrega == null || ordenEntrega.isBlank())
             throw new IllegalArgumentException(
-                "Bodega retorno una orden de entrega vacia.");
+                    "Bodega retorno una orden de entrega vacia.");
         String[] partes = ordenEntrega.split("#");
         try {
             return Integer.parseInt(partes[0].trim());
         } catch (NumberFormatException e) {
             throw new IllegalArgumentException(
-                "ID de orden no numerico en respuesta: '" + ordenEntrega + "'");
+                    "ID de orden no numerico en respuesta: '" + ordenEntrega + "'");
         }
     }
 
