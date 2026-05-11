@@ -14,9 +14,9 @@ public class ServerControl {
 
 	public ServerControl(Communicator com) {
 		this.comunicator = com;
-		// ConsolaAdministracion cAdmin=new ConsolaAdministracion(this);
-		// Thread th=new Thread(cAdmin);
-		// th.start();
+		ConsolaAdministracion cAdmin=new ConsolaAdministracion(this);
+		Thread th=new Thread(cAdmin);
+		th.start();
 
 	}
 
@@ -75,6 +75,65 @@ public class ServerControl {
 		String correo = md.darCorreoOperador(codigoOperador);
 		cbd.cerrarConexion();
 		return correo;
+	}
+
+	public boolean registrarOperador(int id, String nombre, String correo, String contrasena) {
+		ConexionBD cbd = new ConexionBD(comunicator);
+		cbd.conectarBaseDatos();
+		ManejadorDatos md = new ManejadorDatos();
+		md.setConexion(cbd.getConnection());
+		boolean res = md.registrarOperador(id, nombre, correo, contrasena);
+		cbd.cerrarConexion();
+		return res;
+	}
+
+	public boolean registrarMaquina(int id, String ubicacion) {
+		ConexionBD cbd = new ConexionBD(comunicator);
+		cbd.conectarBaseDatos();
+		ManejadorDatos md = new ManejadorDatos();
+		md.setConexion(cbd.getConnection());
+		boolean res = md.registrarMaquina(id, ubicacion);
+		cbd.cerrarConexion();
+		return res;
+	}
+
+	public List<String> darAlarmasActivas() {
+		ConexionBD cbd = new ConexionBD(comunicator);
+		cbd.conectarBaseDatos();
+		ManejadorDatos md = new ManejadorDatos();
+		md.setConexion(cbd.getConnection());
+		List<String> res = md.darAlarmasActivas();
+		cbd.cerrarConexion();
+		return res;
+	}
+
+	public String registrarReceta(String nombre, int precio) {
+		ConexionBD cbd = new ConexionBD(comunicator);
+		cbd.conectarBaseDatos();
+		ManejadorDatos md = new ManejadorDatos();
+		md.setConexion(cbd.getConnection());
+		String res = md.registrarReceta(nombre, precio);
+		cbd.cerrarConexion();
+		return res;
+	}
+
+	public void registrarRecetaIngrediente(int idReceta, int idIngrediente, int valor) {
+		ConexionBD cbd = new ConexionBD(comunicator);
+		cbd.conectarBaseDatos();
+		ManejadorDatos md = new ManejadorDatos();
+		md.setConexion(cbd.getConnection());
+		md.registrarRecetaIngrediente(idReceta, idIngrediente, valor);
+		cbd.cerrarConexion();
+	}
+
+	public String[] consultarIngredientes() {
+		ConexionBD cbd = new ConexionBD(comunicator);
+		cbd.conectarBaseDatos();
+		ManejadorDatos md = new ManejadorDatos();
+		md.setConexion(cbd.getConnection());
+		String[] res = md.consultarIngredientes();
+		cbd.cerrarConexion();
+		return res;
 	}
 
 	public boolean existeOperador(int codigoOperador, String contrasena) {

@@ -718,6 +718,53 @@ public class ManejadorDatos {
 
 	}
 
+	public boolean registrarOperador(int id, String nombre, String correo, String contrasena) {
+		try {
+			String insert = "INSERT INTO OPERADORES (IDOPERADOR, NOMBRE, CORREO, CONTRASENA) VALUES (?, ?, ?, ?)";
+			PreparedStatement pst = conexion.prepareStatement(insert);
+			pst.setInt(1, id);
+			pst.setString(2, nombre);
+			pst.setString(3, correo);
+			pst.setString(4, contrasena);
+			pst.executeUpdate();
+			return true;
+		} catch (SQLException e) {
+			e.printStackTrace();
+			return false;
+		}
+	}
+
+	public boolean registrarMaquina(int id, String ubicacion) {
+		try {
+			String insert = "INSERT INTO MAQUINA (IDMAQUINA, UBICACION) VALUES (?, ?)";
+			PreparedStatement pst = conexion.prepareStatement(insert);
+			pst.setInt(1, id);
+			pst.setString(2, ubicacion);
+			pst.executeUpdate();
+			return true;
+		} catch (SQLException e) {
+			e.printStackTrace();
+			return false;
+		}
+	}
+
+	public List<String> darAlarmasActivas() {
+		List<String> alarmas = new ArrayList<>();
+		try {
+			String query = "SELECT am.ID_MAQUINA, m.UBICACION, a.NOMBRE, am.FECHA_INICIAL " +
+					"FROM ALARMA_MAQUINA am, MAQUINA m, ALARMA a " +
+					"WHERE am.FECHA_FINAL IS NULL AND am.ID_MAQUINA = m.IDMAQUINA AND am.ID_ALARMA = a.IDALARMA";
+			PreparedStatement pst = conexion.prepareStatement(query);
+			ResultSet rs = pst.executeQuery();
+			while (rs.next()) {
+				alarmas.add("Máquina: " + rs.getInt(1) + " (" + rs.getString(2) + ") - Alarma: " + rs.getString(3) + " - Desde: " + rs.getDate(4));
+			}
+		} catch (SQLException e) {
+			e.printStackTrace();
+		}
+		return alarmas;
+	}
+
 	/**
 	 * <b>Descripción:</b>Modifica el Objeto Connection para realizar la
 	 * conexion a la BD.

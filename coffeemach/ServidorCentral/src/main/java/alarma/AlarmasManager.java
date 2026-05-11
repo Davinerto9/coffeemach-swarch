@@ -1,6 +1,7 @@
 package alarma;
 
 import java.util.Date;
+import java.util.List;
 
 import com.zeroc.Ice.Communicator;
 
@@ -23,18 +24,34 @@ public class AlarmasManager {
         md.setConexion(cbd.getConnection());
 
         String alarma = md.darNombreAlarma(idAlarma);
-        String operador = md.darOperador(idMaquina);
+        String infoOperador = md.darOperador(idMaquina);
 
-        if (alarma != null && operador != null) {
+        if (alarma != null && infoOperador != null) {
+            String[] parts = infoOperador.split("#");
+            String operador = parts[0];
+            String correo = parts.length > 1 ? parts[1] : "N/A";
+
             AlarmaMaquina aM = new AlarmaMaquina(idAlarma, idMaquina,
                     fechainicial);
             md.registrarAlarma(aM);
             cbd.cerrarConexion();
-            return "Fallo de máquina: " + alarma + " - Atención por:"
-                    + operador;
+
+            String msg = "NOTIFICACIÓN: Fallo de máquina " + idMaquina + " - Alarma: " + alarma + " - Asignado a: " + operador + " (" + correo + ")";
+            System.out.println(msg);
+            return msg;
         }
         cbd.cerrarConexion();
-        return null;
+        return "Alarma recibida para máquina " + idMaquina + ", pero no se encontró operador asignado.";
+    }
+
+    public List<String> getActiveAlarms() {
+        ConexionBD cbd = new ConexionBD(comunicator);
+        cbd.conectarBaseDatos();
+        ManejadorDatos md = new ManejadorDatos();
+        md.setConexion(cbd.getConnection());
+        List<String> alarmas = md.darAlarmasActivas();
+        cbd.cerrarConexion();
+        return alarmas;
     }
 
     public void desactivarAlarma(int idAlarma, int idMaquina, Date fechaFinal) {
