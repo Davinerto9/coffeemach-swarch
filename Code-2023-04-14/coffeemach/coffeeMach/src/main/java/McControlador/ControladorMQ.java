@@ -82,10 +82,17 @@ public class ControladorMQ implements Runnable, ServicioAbastecimiento {
 				+ ", maquinaLocal=" + this.codMaquina);
 
 		if (codMaquina != this.codMaquina) {
-			System.out.println("[CoffeeMach] Solicitud ignorada: maquina destino "
+			String mensaje = "[CoffeeMach] Solicitud rechazada: maquina destino "
 					+ codMaquina + " no coincide con maquina local "
-					+ this.codMaquina);
-			return;
+					+ this.codMaquina;
+			System.out.println(mensaje);
+			throw new RuntimeException(mensaje);
+		}
+
+		if (alarmaServicePrx == null) {
+			String mensaje = "[CoffeeMach] No se puede resolver la alarma: alarmaServicePrx es null.";
+			System.out.println(mensaje);
+			throw new RuntimeException(mensaje);
 		}
 
 		switch (idAlarma) {
@@ -109,6 +116,7 @@ public class ControladorMQ implements Runnable, ServicioAbastecimiento {
 				break;
 			case 6:
 				System.out.println("[CoffeeMach] Tipo 6 recibido: mantenimiento/mal funcionamiento atendido.");
+				quitarAlarma("1");
 				break;
 			case 7:
 				cantidad = recargarMoneda("500", 20);
@@ -130,9 +138,10 @@ public class ControladorMQ implements Runnable, ServicioAbastecimiento {
 				cantidad = recargarIngredienteConCantidad("Vaso");
 				break;
 			default:
-				System.out.println("[CoffeeMach] Tipo de alarma no reconocido: "
-						+ idAlarma + ". No se recargo ningun recurso.");
-				break;
+				String mensaje = "[CoffeeMach] Tipo de alarma no reconocido: "
+						+ idAlarma + ". No se recargo ningun recurso.";
+				System.out.println(mensaje);
+				throw new RuntimeException(mensaje);
 		}
 
 		quitarAlarma(idAlarma + "");
@@ -153,14 +162,10 @@ public class ControladorMQ implements Runnable, ServicioAbastecimiento {
 		// ResetAlarmas
 
 		// Envio a Servidor
-		if (alarmaServicePrx != null) {
-			alarmaServicePrx.recibirNotificacionAbastesimiento(codMaquina, idAlarma + "", cantidad);
-			System.out.println("[CoffeeMach] Notificacion de abastecimiento enviada. maquina="
-					+ codMaquina + ", tipoAlarma=" + idAlarma
-					+ ", cantidad=" + cantidad);
-		} else {
-			System.out.println("[CoffeeMach] No se notifico al ServidorCentral: alarmaServicePrx es null.");
-		}
+		alarmaServicePrx.recibirNotificacionAbastesimiento(codMaquina, idAlarma + "", cantidad);
+		System.out.println("[CoffeeMach] Notificacion de abastecimiento enviada. maquina="
+				+ codMaquina + ", tipoAlarma=" + idAlarma
+				+ ", cantidad=" + cantidad);
 	}
 
 	public void quitarAlarma(String tipo) {

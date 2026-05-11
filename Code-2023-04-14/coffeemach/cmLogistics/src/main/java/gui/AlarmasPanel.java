@@ -219,6 +219,7 @@ public class AlarmasPanel extends JPanel {
         JLabel lblComprobante = new JLabel(" ");
         lblComprobante.setFont(new Font("Segoe UI", Font.ITALIC, 11));
         lblComprobante.setForeground(new Color(0x3B6D11));
+        final OrdenTrabajo[] ordenTrabajo = new OrdenTrabajo[1];
 
         JButton btnResolver = LoginFrame.primaryButton("▶  Resolver alarma");
         btnResolver.setMaximumSize(new Dimension(200, 34));
@@ -230,8 +231,11 @@ public class AlarmasPanel extends JPanel {
             btnResolver.setText("Procesando…");
             btnOT.setEnabled(false);
 
-            OrdenTrabajo ot = controlador.generarOrdenTrabajo(alarma);
-            dashboard.registrarOrdenTrabajo(ot);
+            if (ordenTrabajo[0] == null) {
+                ordenTrabajo[0] = controlador.generarOrdenTrabajo(alarma);
+                dashboard.registrarOrdenTrabajo(ordenTrabajo[0]);
+            }
+            OrdenTrabajo ot = ordenTrabajo[0];
             otTitulo.setText("OT #" + ot.getConsecutivo());
 
             SwingWorker<String, Integer> worker = new SwingWorker<String, Integer>() {
@@ -318,9 +322,11 @@ public class AlarmasPanel extends JPanel {
         String texto; Color bg; Color fg;
         switch (tipo) {
             case 1:  texto = "Escasez ingrediente";   bg = new Color(0xFCEBEB); fg = new Color(0xA32D2D); break;
-            case 2:  texto = "Monedas insuficientes"; bg = new Color(0xFAEEDA); fg = new Color(0x854F0B); break;
-            case 3:  texto = "Escasez suministro";    bg = new Color(0xFAEEDA); fg = new Color(0x854F0B); break;
-            case 4:  texto = "Mal funcionamiento";    bg = new Color(0xFCEBEB); fg = new Color(0xA32D2D); break;
+            case 2:  texto = "Falta moneda 100";      bg = new Color(0xFAEEDA); fg = new Color(0x854F0B); break;
+            case 3:  texto = "Falta moneda 200";      bg = new Color(0xFAEEDA); fg = new Color(0x854F0B); break;
+            case 4:  texto = "Falta moneda 500";      bg = new Color(0xFAEEDA); fg = new Color(0x854F0B); break;
+            case 5:  texto = "Escasez suministro";    bg = new Color(0xE6F1FB); fg = new Color(0x185FA5); break;
+            case 6:  texto = "Mal funcionamiento";    bg = new Color(0xFCEBEB); fg = new Color(0xA32D2D); break;
             default: texto = "Tipo " + tipo;          bg = new Color(0xF1EFE8); fg = new Color(0x5F5E5A); break;
         }
         JLabel l = new JLabel(texto);

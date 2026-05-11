@@ -94,6 +94,11 @@ public class ControladorAlarmas {
             confirmarRecepcionEnBodega(idOrden, ordenTrabajo);
 
             ordenTrabajo.setComprobanteBodega(comprobante);
+            if (alarmaSiguePendiente(ordenTrabajo.getAlarma())) {
+                throw new RuntimeException(
+                        "La operación terminó, pero la alarma sigue activa en ServidorCentral.");
+            }
+
             ordenTrabajo.setEstado(OrdenMantenimiento.RESUELTA);
 
             return construirReporte(ruta, ordenTrabajo, ordenEntrega, comprobante);
@@ -160,6 +165,17 @@ public class ControladorAlarmas {
                 idOrden,
                 "Recepcion confirmada por operador "
                         + codigoOperadorActivo + " para " + ot);
+    }
+
+    private boolean alarmaSiguePendiente(AlarmaPendiente alarma) {
+        List<AlarmaPendiente> pendientes = consultarAlarmasPendientes();
+        for (AlarmaPendiente pendiente : pendientes) {
+            if (pendiente.getCodMaquina() == alarma.getCodMaquina()
+                    && pendiente.getTipoAlarma() == alarma.getTipoAlarma()) {
+                return true;
+            }
+        }
+        return false;
     }
 
     private String construirReporte(String ruta, OrdenTrabajo ot,
