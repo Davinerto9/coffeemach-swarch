@@ -10,6 +10,7 @@ import java.util.*;
 import java.io.*;
 import java.util.Map.Entry;
 import javax.swing.JFrame;
+import javax.swing.SwingUtilities;
 import java.awt.event.*;
 import interfazUsuario.Interfaz;
 import com.zeroc.Ice.Current;
@@ -88,6 +89,39 @@ public class ControladorMQ implements Runnable, ServicioAbastecimiento {
 		}
 	}
 
+	private void ejecutarEnEDT(Runnable accion) {
+		if (SwingUtilities.isEventDispatchThread()) {
+			accion.run();
+		} else {
+			SwingUtilities.invokeLater(accion);
+		}
+	}
+
+	private void ejecutarRemotoAsync(final String nombreOperacion, final Runnable operacion) {
+		System.out.println("[CoffeeMach] Notificación remota programada: " + nombreOperacion);
+		Thread t = new Thread(new Runnable() {
+			public void run() {
+				try {
+					operacion.run();
+					System.out.println("[CoffeeMach] Notificación remota completada: " + nombreOperacion);
+				} catch (Exception e) {
+					System.err.println("[CoffeeMach] Error en notificación remota "
+							+ nombreOperacion + ": " + e);
+					ejecutarEnEDT(new Runnable() {
+						public void run() {
+							if (frame != null && frame.getTextAreaAlarmas() != null) {
+								frame.getTextAreaAlarmas().append("[CoffeeMach] Error notificando al servidor: "
+										+ nombreOperacion + "\n");
+							}
+						}
+					});
+				}
+			}
+		}, "CoffeeMach-RemoteNotify-" + nombreOperacion);
+		t.setDaemon(true);
+		t.start();
+	}
+
 	@Override
 	public void abastecer(int codMaquina, int idAlarma, Current current) {
 		int cantidad = 0;
@@ -130,7 +164,6 @@ public class ControladorMQ implements Runnable, ServicioAbastecimiento {
 				break;
 			case 6:
 				System.out.println("[CoffeeMach] Tipo 6 recibido: mantenimiento/mal funcionamiento atendido.");
-				quitarAlarma("1");
 				break;
 			case 7:
 				cantidad = recargarMoneda("500", 20);
@@ -158,20 +191,36 @@ public class ControladorMQ implements Runnable, ServicioAbastecimiento {
 				throw new RuntimeException(mensaje);
 		}
 
-		quitarAlarma(idAlarma + "");
+		System.out.println("[CoffeeMach] Tipo central recibido: " + idAlarma);
+		quitarAlarmasLocalesRelacionadas(idAlarma);
 
-		if (alarmas.getValues().isEmpty() && frame != null) {
-				frame.setEnabled(true);
-				frame.interfazHabilitada();
-
-			System.out.println("[CoffeeMach] Interfaz habilitada: no quedan alarmas locales.");
+		boolean habilitarInterfaz = alarmas.getValues().isEmpty() && frame != null;
+		if (habilitarInterfaz) {
+			System.out.println("[CoffeeMach] UI se habilita porque no quedan alarmas locales.");
+		} else {
+			System.out.println("[CoffeeMach] UI permanece en alarma porque aun existen alarmas locales: "
+					+ alarmas.getkeys());
 		}
 
 		// Respaldo
 		respaldarMaq();
-		actualizarRecetasGraf();
-		actualizarInsumosGraf();
-		actualizarAlarmasGraf();
+		ejecutarEnEDT(new Runnable() {
+			public void run() {
+				System.out.println("[CoffeeMach] Refrescando interfaz desde EDT. enEDT="
+						+ SwingUtilities.isEventDispatchThread());
+
+				if (habilitarInterfaz) {
+					frame.setEnabled(true);
+					frame.interfazHabilitada();
+
+					System.out.println("[CoffeeMach] Interfaz habilitada: no quedan alarmas locales.");
+				}
+
+				actualizarRecetasGraf();
+				actualizarInsumosGraf();
+				actualizarAlarmasGraf();
+			}
+		});
 
 		// ResetAlarmas
 
@@ -184,6 +233,85 @@ public class ControladorMQ implements Runnable, ServicioAbastecimiento {
 
 	public void quitarAlarma(String tipo) {
 		alarmas.removeElement(tipo);
+	}
+
+	private void quitarAlarmasLocalesRelacionadas(int tipoAlarmaCentralOlocal) {
+		List<String> alarmasRemover = new ArrayList<String>();
+
+		switch (tipoAlarmaCentralOlocal) {
+			case 1:
+				if (existeAlgunaAlarma("8", "9", "10", "12", "13", "14")) {
+					agregarAlarmas(alarmasRemover, "8", "9", "10", "12", "13", "14");
+				} else {
+					agregarAlarmas(alarmasRemover, "1");
+				}
+				break;
+			case 2:
+				agregarAlarmas(alarmasRemover, "2", "3");
+				break;
+			case 3:
+				agregarAlarmas(alarmasRemover, "4", "5");
+				break;
+			case 4:
+				agregarAlarmas(alarmasRemover, "6", "7");
+				break;
+			case 5:
+				agregarAlarmas(alarmasRemover, "11", "15");
+				break;
+			case 6:
+				agregarAlarmas(alarmasRemover, "1");
+				break;
+			case 7:
+				agregarAlarmas(alarmasRemover, "6", "7");
+				break;
+			case 8:
+			case 12:
+				agregarAlarmas(alarmasRemover, "8", "12");
+				break;
+			case 9:
+			case 13:
+				agregarAlarmas(alarmasRemover, "9", "13");
+				break;
+			case 10:
+			case 14:
+				agregarAlarmas(alarmasRemover, "10", "14");
+				break;
+			case 11:
+			case 15:
+				agregarAlarmas(alarmasRemover, "11", "15");
+				break;
+			default:
+				agregarAlarmas(alarmasRemover, tipoAlarmaCentralOlocal + "");
+				break;
+		}
+
+		List<String> removidas = new ArrayList<String>();
+		for (String tipo : alarmasRemover) {
+			if (alarmas.findByKey(tipo) != null) {
+				quitarAlarma(tipo);
+				removidas.add(tipo);
+			}
+		}
+
+		System.out.println("[CoffeeMach] Alarmas locales removidas: " + removidas);
+		System.out.println("[CoffeeMach] Alarmas locales restantes: " + alarmas.getValues().size());
+	}
+
+	private boolean existeAlgunaAlarma(String... tipos) {
+		for (String tipo : tipos) {
+			if (alarmas.findByKey(tipo) != null) {
+				return true;
+			}
+		}
+		return false;
+	}
+
+	private void agregarAlarmas(List<String> alarmasRemover, String... tipos) {
+		for (String tipo : tipos) {
+			if (!alarmasRemover.contains(tipo)) {
+				alarmasRemover.add(tipo);
+			}
+		}
 	}
 
 	public void recargarIngredienteEspecifico(String ingrediente) {
@@ -379,7 +507,12 @@ public class ControladorMQ implements Runnable, ServicioAbastecimiento {
 								+ "Se genero una alarma de: Mantenimiento"
 								+ "\n");
 
-				alarmaServicePrx.recibirNotificacionMalFuncionamiento(codMaquina, "Se requiere mantenimiento");
+				ejecutarRemotoAsync("recibirNotificacionMalFuncionamiento", new Runnable() {
+					public void run() {
+						alarmaServicePrx.recibirNotificacionMalFuncionamiento(codMaquina,
+								"Se requiere mantenimiento");
+					}
+				});
 
 				alarmas.addElement("1", temp);
 
@@ -399,7 +532,11 @@ public class ControladorMQ implements Runnable, ServicioAbastecimiento {
 					System.out.println(arregloVentas[i]);
 				}
 
-				ventasService.registrarVenta(codMaquina, arregloVentas);
+				ejecutarRemotoAsync("registrarVenta", new Runnable() {
+					public void run() {
+						ventasService.registrarVenta(codMaquina, arregloVentas);
+					}
+				});
 
 			}
 		});
@@ -407,7 +544,11 @@ public class ControladorMQ implements Runnable, ServicioAbastecimiento {
 		frame.getBtnActualizar().addActionListener(new ActionListener() {
 			public void actionPerformed(ActionEvent e) {
 
-				cargarRecetaMaquinas();
+				ejecutarRemotoAsync("consultarProductos", new Runnable() {
+					public void run() {
+						cargarRecetaMaquinas();
+					}
+				});
 
 			}
 		});
@@ -447,9 +588,13 @@ public class ControladorMQ implements Runnable, ServicioAbastecimiento {
 
 		// Actualizar Archivo Plano
 		recetas.saveData();
-		actualizarInsumosGraf();
-		actualizarRecetasGraf();
-		actualizarRecetasCombo();
+		ejecutarEnEDT(new Runnable() {
+			public void run() {
+				actualizarInsumosGraf();
+				actualizarRecetasGraf();
+				actualizarRecetasCombo();
+			}
+		});
 	}
 
 	public void respaldarMaq() {
@@ -479,7 +624,12 @@ public class ControladorMQ implements Runnable, ServicioAbastecimiento {
 
 					// Enviar SCA
 
-					alarmaServicePrx.recibirNotificacionEscasezIngredientes(ing.getNombre(), codMaquina);
+					final String nombreIngrediente = ing.getNombre();
+					ejecutarRemotoAsync("recibirNotificacionEscasezIngredientes", new Runnable() {
+						public void run() {
+							alarmaServicePrx.recibirNotificacionEscasezIngredientes(nombreIngrediente, codMaquina);
+						}
+					});
 
 					frame.getTextAreaAlarmas().setText(
 							frame.getTextAreaAlarmas().getText()
@@ -499,7 +649,12 @@ public class ControladorMQ implements Runnable, ServicioAbastecimiento {
 
 				// Enviar SCA
 
-				alarmaServicePrx.recibirNotificacionEscasezIngredientes(ing.getNombre(), codMaquina);
+				final String nombreIngredienteCritico = ing.getNombre();
+				ejecutarRemotoAsync("recibirNotificacionEscasezIngredientes", new Runnable() {
+					public void run() {
+						alarmaServicePrx.recibirNotificacionEscasezIngredientes(nombreIngredienteCritico, codMaquina);
+					}
+				});
 
 				frame.getTextAreaAlarmas().setText(
 						frame.getTextAreaAlarmas().getText()
@@ -707,7 +862,11 @@ public class ControladorMQ implements Runnable, ServicioAbastecimiento {
 			if (alarmas.findByKey("2") == null) {
 				alarmas.addElement("2", alMon);
 
-				alarmaServicePrx.recibirNotificacionInsuficienciaMoneda(Moneda.CIEN, codMaquina);
+				ejecutarRemotoAsync("recibirNotificacionInsuficienciaMoneda-CIEN", new Runnable() {
+					public void run() {
+						alarmaServicePrx.recibirNotificacionInsuficienciaMoneda(Moneda.CIEN, codMaquina);
+					}
+				});
 				frame.getTextAreaAlarmas().setText(
 						frame.getTextAreaAlarmas().getText()
 								+ "Se genero una alarma de: Monedas de 100"
@@ -723,7 +882,11 @@ public class ControladorMQ implements Runnable, ServicioAbastecimiento {
 			alarmas.addElement("3", alMon);
 
 			// Enviar SCA
-			alarmaServicePrx.recibirNotificacionInsuficienciaMoneda(Moneda.CIEN, codMaquina);
+			ejecutarRemotoAsync("recibirNotificacionInsuficienciaMoneda-CIEN", new Runnable() {
+				public void run() {
+					alarmaServicePrx.recibirNotificacionInsuficienciaMoneda(Moneda.CIEN, codMaquina);
+				}
+			});
 
 			frame.getTextAreaAlarmas().setText(
 					frame.getTextAreaAlarmas().getText()
@@ -744,7 +907,11 @@ public class ControladorMQ implements Runnable, ServicioAbastecimiento {
 
 				// Enviar SCA
 
-				alarmaServicePrx.recibirNotificacionInsuficienciaMoneda(Moneda.DOCIENTOS, codMaquina);
+				ejecutarRemotoAsync("recibirNotificacionInsuficienciaMoneda-DOCIENTOS", new Runnable() {
+					public void run() {
+						alarmaServicePrx.recibirNotificacionInsuficienciaMoneda(Moneda.DOCIENTOS, codMaquina);
+					}
+				});
 
 				frame.getTextAreaAlarmas().setText(
 						frame.getTextAreaAlarmas().getText()
@@ -762,7 +929,11 @@ public class ControladorMQ implements Runnable, ServicioAbastecimiento {
 
 			// Enviar SCA
 
-			alarmaServicePrx.recibirNotificacionInsuficienciaMoneda(Moneda.DOCIENTOS, codMaquina);
+			ejecutarRemotoAsync("recibirNotificacionInsuficienciaMoneda-DOCIENTOS", new Runnable() {
+				public void run() {
+					alarmaServicePrx.recibirNotificacionInsuficienciaMoneda(Moneda.DOCIENTOS, codMaquina);
+				}
+			});
 
 			frame.getTextAreaAlarmas()
 					.setText(
@@ -784,7 +955,11 @@ public class ControladorMQ implements Runnable, ServicioAbastecimiento {
 
 				// Enviar SCA
 
-				alarmaServicePrx.recibirNotificacionInsuficienciaMoneda(Moneda.QUINIENTOS, codMaquina);
+				ejecutarRemotoAsync("recibirNotificacionInsuficienciaMoneda-QUINIENTOS", new Runnable() {
+					public void run() {
+						alarmaServicePrx.recibirNotificacionInsuficienciaMoneda(Moneda.QUINIENTOS, codMaquina);
+					}
+				});
 
 				frame.getTextAreaAlarmas().setText(
 						frame.getTextAreaAlarmas().getText()
@@ -799,7 +974,11 @@ public class ControladorMQ implements Runnable, ServicioAbastecimiento {
 					"ESTADO CRITICO: Faltan monedas de 500", new Date());
 			alarmas.addElement("7", alMon);
 
-			alarmaServicePrx.recibirNotificacionInsuficienciaMoneda(Moneda.QUINIENTOS, codMaquina);
+			ejecutarRemotoAsync("recibirNotificacionInsuficienciaMoneda-QUINIENTOS", new Runnable() {
+				public void run() {
+					alarmaServicePrx.recibirNotificacionInsuficienciaMoneda(Moneda.QUINIENTOS, codMaquina);
+				}
+			});
 
 			frame.getTextAreaAlarmas().setText(
 					frame.getTextAreaAlarmas().getText()
