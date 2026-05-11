@@ -8,10 +8,13 @@ public interface Bodega {
     List<String> consultarMonedas();
     List<String> consultarIngredientes();
     List<String> consultarSuministros();
+    List<String> consultarOrdenes();
 
     // Flujo de órdenes de entrega
     String entregaKitReparacion(int idOrden, int codMaquina);
     String retirarExistencias(int tipoAlarma);
     void   abastecerExistencia(String codigo, int cantidad);
     String separarExistencias(int idOrden, int tipoAlarma);
+    String entregarMateriales(int idOrden, int codMaquina, int tipoAlarma);
+    void   registrarRecepcionMateriales(int idOrden, String evidencia);
 }

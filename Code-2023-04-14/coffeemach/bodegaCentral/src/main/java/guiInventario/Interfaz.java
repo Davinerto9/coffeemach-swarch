@@ -16,6 +16,7 @@ public class Interfaz extends JFrame {
 
     // ── Componentes ──────────────────────────────────────────────────────────
     private JTextArea textAreaInventario;
+    private JTextArea textAreaOrdenes;
     private JTextArea textAreaResultado;
     private JComboBox<String> comboCategoria;
     private JTextField txtCodigo;
@@ -31,12 +32,18 @@ public class Interfaz extends JFrame {
     private JButton btnSepararExistencias;
     private JButton btnRetirarExistencias;
     private JButton btnKitReparacion;
+    private JButton btnEntregarMateriales;
+    private JButton btnConfirmarRecepcion;
+    private JButton btnActualizarOrdenes;
+    private Timer timerOrdenes;
 
     public Interfaz(Inventario inventario, Bodega bodega) {
         this.inventario = inventario;
         this.bodega = bodega;
         construirVentana();
         registrarEventos();
+        refrescarOrdenes();
+        iniciarTimerOrdenes();
     }
 
     // ── Construcción de la ventana ────────────────────────────────────────────
@@ -126,7 +133,7 @@ public class Interfaz extends JFrame {
 
         JPanel panelOrdenes = new JPanel();
         panelOrdenes.setBorder(new BevelBorder(BevelBorder.LOWERED));
-        panelOrdenes.setBounds(440, 10, 440, 200);
+        panelOrdenes.setBounds(440, 10, 440, 310);
         panelOrdenes.setLayout(null);
         contentPane.add(panelOrdenes);
 
@@ -159,28 +166,52 @@ public class Interfaz extends JFrame {
         txtTipoAlarma.setBounds(95, 72, 55, 22);
         panelOrdenes.add(txtTipoAlarma);
 
-        JLabel lblRef = new JLabel("1=Ingr  2=Mon  3/4=Sum  6=Kit");
+        JLabel lblRef = new JLabel("1=Ingr 2=Mon100 3=Mon200 4=Mon500 5=Sum 6=Kit");
         lblRef.setBounds(160, 72, 260, 20);
         lblRef.setForeground(Color.GRAY);
         panelOrdenes.add(lblRef);
 
-        btnSepararExistencias = new JButton("Separar existencias");
-        btnSepararExistencias.setBounds(10, 108, 160, 28);
+        btnSepararExistencias = new JButton("Separar orden");
+        btnSepararExistencias.setBounds(10, 108, 130, 28);
         panelOrdenes.add(btnSepararExistencias);
 
-        btnRetirarExistencias = new JButton("Retirar existencias");
-        btnRetirarExistencias.setBounds(180, 108, 155, 28);
+        btnEntregarMateriales = new JButton("Entregar materiales");
+        btnEntregarMateriales.setBounds(150, 108, 165, 28);
+        panelOrdenes.add(btnEntregarMateriales);
+
+        btnConfirmarRecepcion = new JButton("Confirmar recepción");
+        btnConfirmarRecepcion.setBounds(10, 144, 165, 28);
+        panelOrdenes.add(btnConfirmarRecepcion);
+
+        btnRetirarExistencias = new JButton("Retirar por tipo");
+        btnRetirarExistencias.setBounds(185, 144, 135, 28);
         panelOrdenes.add(btnRetirarExistencias);
 
         btnKitReparacion = new JButton("Entregar kit reparación");
-        btnKitReparacion.setBounds(10, 148, 200, 28);
+        btnKitReparacion.setBounds(10, 180, 200, 28);
         panelOrdenes.add(btnKitReparacion);
+
+        JLabel lblOrdenesRecibidas = new JLabel("Órdenes recibidas");
+        lblOrdenesRecibidas.setBounds(10, 216, 160, 20);
+        panelOrdenes.add(lblOrdenesRecibidas);
+
+        btnActualizarOrdenes = new JButton("Actualizar órdenes");
+        btnActualizarOrdenes.setBounds(270, 212, 150, 24);
+        panelOrdenes.add(btnActualizarOrdenes);
+
+        JScrollPane scrollOrdenes = new JScrollPane();
+        scrollOrdenes.setBounds(10, 240, 410, 58);
+        panelOrdenes.add(scrollOrdenes);
+
+        textAreaOrdenes = new JTextArea();
+        textAreaOrdenes.setEditable(false);
+        scrollOrdenes.setViewportView(textAreaOrdenes);
 
         // ── Panel resultado ──────────────────────────────────────────────────
 
         JPanel panelResultado = new JPanel();
         panelResultado.setBorder(new BevelBorder(BevelBorder.LOWERED));
-        panelResultado.setBounds(440, 220, 440, 240);
+        panelResultado.setBounds(440, 330, 440, 130);
         panelResultado.setLayout(null);
         contentPane.add(panelResultado);
 
@@ -190,7 +221,7 @@ public class Interfaz extends JFrame {
         panelResultado.add(lblResultado);
 
         JScrollPane scrollResultado = new JScrollPane();
-        scrollResultado.setBounds(10, 28, 420, 200);
+        scrollResultado.setBounds(10, 28, 420, 90);
         panelResultado.add(scrollResultado);
 
         textAreaResultado = new JTextArea();
@@ -205,6 +236,8 @@ public class Interfaz extends JFrame {
         btnConsultarTodo.addActionListener(e -> {
             mostrarEnInventario(inventario.consultarInventario());
         });
+
+        btnActualizarOrdenes.addActionListener(e -> refrescarOrdenes());
 
         btnConsultarCategoria.addActionListener(e -> {
 
@@ -258,7 +291,7 @@ public class Interfaz extends JFrame {
             }
 
             mostrarResultado("Abastecimiento masivo de " + cat + " realizado.");
-            mostrarEnInventario(inventario.consultarInventario());
+            refrescarInventarioSegunCategoriaSeleccionada();
         });
 
         btnAbastecerIndividual.addActionListener(e -> {
@@ -278,7 +311,7 @@ public class Interfaz extends JFrame {
 
                 mostrarResultado("Abastecido: " + codigo + " +" + cantidad);
 
-                mostrarEnInventario(inventario.consultarInventario());
+                refrescarInventarioSegunCategoriaSeleccionada();
 
             } catch (NumberFormatException ex) {
 
@@ -297,11 +330,64 @@ public class Interfaz extends JFrame {
 
                 mostrarResultado(
                         bodega.separarExistencias(idOrden, tipoAlarma));
+                refrescarInventarioSegunCategoriaSeleccionada();
+                refrescarOrdenes();
 
             } catch (NumberFormatException ex) {
 
                 mostrarResultado(
                         "ID orden y tipo alarma deben ser números.");
+            }
+        });
+
+        btnEntregarMateriales.addActionListener(e -> {
+
+            try {
+
+                int idOrden = Integer.parseInt(txtIdOrden.getText().trim());
+
+                int codMaquina =
+                        Integer.parseInt(txtCodMaquina.getText().trim());
+
+                int tipoAlarma =
+                        Integer.parseInt(txtTipoAlarma.getText().trim());
+
+                mostrarResultado(
+                        bodega.entregarMateriales(
+                                idOrden,
+                                codMaquina,
+                                tipoAlarma));
+
+                refrescarInventarioSegunCategoriaSeleccionada();
+                refrescarOrdenes();
+
+            } catch (NumberFormatException ex) {
+
+                mostrarResultado(
+                        "ID orden, Cod máquina y tipo alarma deben ser números.");
+            }
+        });
+
+        btnConfirmarRecepcion.addActionListener(e -> {
+
+            try {
+
+                int idOrden =
+                        Integer.parseInt(txtIdOrden.getText().trim());
+
+                bodega.registrarRecepcionMateriales(
+                        idOrden,
+                        "Confirmado desde GUI Bodega");
+
+                mostrarResultado(
+                        "Recepción confirmada para orden " + idOrden + ".");
+
+                refrescarInventarioSegunCategoriaSeleccionada();
+                refrescarOrdenes();
+
+            } catch (NumberFormatException ex) {
+
+                mostrarResultado("ID orden debe ser número.");
             }
         });
 
@@ -317,7 +403,7 @@ public class Interfaz extends JFrame {
 
                 mostrarResultado("Retirado:\n" + resultado);
 
-                mostrarEnInventario(inventario.consultarInventario());
+                refrescarInventarioSegunCategoriaSeleccionada();
 
             } catch (NumberFormatException ex) {
 
@@ -340,7 +426,8 @@ public class Interfaz extends JFrame {
                                 idOrden,
                                 codMaquina));
 
-                mostrarEnInventario(inventario.consultarInventario());
+                refrescarInventarioSegunCategoriaSeleccionada();
+                refrescarOrdenes();
 
             } catch (NumberFormatException ex) {
 
@@ -361,6 +448,64 @@ public class Interfaz extends JFrame {
         }
 
         textAreaInventario.setText(sb.toString());
+    }
+
+    private void mostrarEnOrdenes(List<String> ordenes) {
+
+        StringBuilder sb = new StringBuilder();
+
+        if (ordenes.isEmpty()) {
+            sb.append("Sin órdenes recibidas.");
+        } else {
+            for (String orden : ordenes) {
+                sb.append(orden).append("\n");
+            }
+        }
+
+        textAreaOrdenes.setText(sb.toString());
+    }
+
+    private void refrescarOrdenes() {
+
+        if (!SwingUtilities.isEventDispatchThread()) {
+            SwingUtilities.invokeLater(() -> refrescarOrdenes());
+            return;
+        }
+
+        mostrarEnOrdenes(bodega.consultarOrdenes());
+    }
+
+    private void iniciarTimerOrdenes() {
+
+        timerOrdenes = new Timer(1500, e -> refrescarOrdenes());
+        timerOrdenes.start();
+    }
+
+    private void refrescarInventarioSegunCategoriaSeleccionada() {
+
+        String cat = (String) comboCategoria.getSelectedItem();
+        List<String> items;
+
+        switch (cat) {
+
+            case "Ingredientes":
+                items = bodega.consultarIngredientes();
+                break;
+
+            case "Monedas":
+                items = bodega.consultarMonedas();
+                break;
+
+            case "Suministros":
+                items = bodega.consultarSuministros();
+                break;
+
+            default:
+                items = inventario.consultarInventario();
+                break;
+        }
+
+        mostrarEnInventario(items);
     }
 
     private void mostrarResultado(String texto) {

@@ -23,7 +23,7 @@ public class BodegaServiceImpl implements ServicioBodega, Bodega {
     }
 
     @Override
-public String generarOrdenEntrega(int codMaquina, int tipoAlarma, String descripcion, com.zeroc.Ice.Current current) {
+public synchronized String generarOrdenEntrega(int codMaquina, int tipoAlarma, String descripcion, com.zeroc.Ice.Current current) {
     OrdenBodega orden = new OrdenBodega(
         contadorOrdenes.getAndIncrement(),
         codMaquina,
@@ -44,7 +44,7 @@ public String generarOrdenEntrega(int codMaquina, int tipoAlarma, String descrip
 }
 
    @Override
-public String separarExistencias(int idOrden, int tipoAlarma, com.zeroc.Ice.Current current) {
+public synchronized String separarExistencias(int idOrden, int tipoAlarma, com.zeroc.Ice.Current current) {
     OrdenBodega orden = ordenes.get(idOrden);
 
     if (orden == null) {
@@ -72,7 +72,7 @@ public String separarExistencias(int idOrden, int tipoAlarma, com.zeroc.Ice.Curr
 }
 
    @Override
-public String entregarMateriales(int idOrden, int codMaquina, int tipoAlarma, com.zeroc.Ice.Current current) {
+public synchronized String entregarMateriales(int idOrden, int codMaquina, int tipoAlarma, com.zeroc.Ice.Current current) {
     OrdenBodega orden = ordenes.get(idOrden);
 
     if (orden == null) {
@@ -115,7 +115,7 @@ public String entregarMateriales(int idOrden, int codMaquina, int tipoAlarma, co
 }
 
     @Override
-    public void registrarRecepcionMateriales(int idOrden, String evidencia, com.zeroc.Ice.Current current) {
+    public synchronized void registrarRecepcionMateriales(int idOrden, String evidencia, com.zeroc.Ice.Current current) {
         OrdenBodega orden = ordenes.get(idOrden);
         if (orden == null) {
             System.err.println("[Bodega] ERROR registrarRecepcionMateriales: orden no encontrada "
@@ -183,6 +183,26 @@ public String entregarMateriales(int idOrden, int codMaquina, int tipoAlarma, co
     public List<String> consultarSuministros() { return filtrarInventario("SUMINISTROS"); }
 
     @Override
+    public synchronized List<String> consultarOrdenes() {
+        List<String> resumenes = new ArrayList<>();
+        for (OrdenBodega orden : ordenes.values()) {
+            resumenes.add("id=" + orden.getId()
+                + " | maq=" + orden.getCodMaquina()
+                + " | tipo=" + orden.getTipoAlarma()
+                + " | estado=" + orden.getEstado()
+                + " | desc=" + limpiarDescripcionOrden(orden.getDescripcion()));
+        }
+        return resumenes;
+    }
+
+    private String limpiarDescripcionOrden(String descripcion) {
+        if (descripcion == null) {
+            return "";
+        }
+        return descripcion.replace("\n", " ").replace("\r", " ");
+    }
+
+    @Override
     public String entregaKitReparacion(int idOrden, int codMaquina) {
         return entregarMateriales(idOrden, codMaquina, 6, null);
     }
@@ -200,5 +220,15 @@ public String entregarMateriales(int idOrden, int codMaquina, int tipoAlarma, co
     @Override
     public String separarExistencias(int idOrden, int tipoAlarma) {
         return separarExistencias(idOrden, tipoAlarma, null);
+    }
+
+    @Override
+    public synchronized String entregarMateriales(int idOrden, int codMaquina, int tipoAlarma) {
+        return entregarMateriales(idOrden, codMaquina, tipoAlarma, null);
+    }
+
+    @Override
+    public synchronized void registrarRecepcionMateriales(int idOrden, String evidencia) {
+        registrarRecepcionMateriales(idOrden, evidencia, null);
     }
 }
