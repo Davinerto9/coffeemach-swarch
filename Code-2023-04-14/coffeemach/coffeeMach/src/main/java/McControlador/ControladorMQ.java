@@ -57,6 +57,7 @@ public class ControladorMQ implements Runnable, ServicioAbastecimiento {
 
 	private Interfaz frame;
 	private int codMaquina;
+	private Integer codMaquinaConfigurado;
 	private double suma;
 
 	public void run() {
@@ -72,6 +73,19 @@ public class ControladorMQ implements Runnable, ServicioAbastecimiento {
 
 		arrancarMaquina();
 		eventos();
+	}
+
+	public void setCodMaquinaConfigurado(Integer codMaquinaConfigurado) {
+		this.codMaquinaConfigurado = codMaquinaConfigurado;
+	}
+
+	public void inicializarCodMaquina() {
+		codMaquina = cargarCodMaquina();
+		if (codMaquina <= 0) {
+			String mensaje = "[CoffeeMach] No se pudo determinar codMaquina. Configure CoffeeMach.CodMaquina o cree codMaquina.cafe.";
+			System.out.println(mensaje);
+			throw new IllegalStateException(mensaje);
+		}
 	}
 
 	@Override
@@ -512,7 +526,9 @@ public class ControladorMQ implements Runnable, ServicioAbastecimiento {
 	}
 
 	public void arrancarMaquina() {
-		codMaquina = quemarCodMaquina();
+		if (codMaquina <= 0) {
+			inicializarCodMaquina();
+		}
 		// Interfaz
 		actualizarRecetasCombo();
 		actualizarRecetasGraf();
@@ -592,33 +608,46 @@ public class ControladorMQ implements Runnable, ServicioAbastecimiento {
 		}
 	}
 
-	private int quemarCodMaquina() {
-		int retorno = -2;
-
-		FileInputStream fstream;
-		try {
-			String path = "codMaquina.cafe";
-			File file = new File(path);
-
-			fstream = new FileInputStream(file);
-
-			DataInputStream entrada = new DataInputStream(fstream);
-
-			BufferedReader buffer = new BufferedReader(new InputStreamReader(
-					entrada));
-
-			retorno = Integer.parseInt(buffer.readLine());
-
-			entrada.close();
-
-		} catch (IOException e1) {
-			// TODO Auto-generated catch block
-			e1.printStackTrace();
+	private int cargarCodMaquina() {
+		if (codMaquinaConfigurado != null && codMaquinaConfigurado > 0) {
+			return codMaquinaConfigurado;
 		}
 
-		System.out.println(retorno + " RETORRRNO");
+		return cargarCodMaquinaDesdeArchivo();
+	}
 
-		return retorno;
+	private int cargarCodMaquinaDesdeArchivo() {
+		String[] rutas = {
+				"codMaquina.cafe",
+				"coffeeMach/codMaquina.cafe",
+				"../codMaquina.cafe",
+				"src/main/resources/codMaquina.cafe"
+		};
+
+		for (String ruta : rutas) {
+			File archivo = new File(ruta);
+			if (!archivo.isFile()) {
+				continue;
+			}
+
+			try (BufferedReader buffer = new BufferedReader(new FileReader(archivo))) {
+				String linea = buffer.readLine();
+				int cod = Integer.parseInt(linea.trim());
+				if (cod > 0) {
+					System.out.println("[CoffeeMach] Código de máquina cargado desde archivo "
+							+ archivo.getPath() + ": " + cod);
+					return cod;
+				}
+				System.out.println("[CoffeeMach] Código de máquina inválido en "
+						+ archivo.getPath() + ": " + linea);
+			} catch (IOException | NumberFormatException e) {
+				System.out.println("[CoffeeMach] No se pudo leer código de máquina desde "
+						+ archivo.getPath() + ": " + e.getMessage());
+			}
+		}
+
+		System.out.println("[CoffeeMach] No se pudo cargar código de máquina.");
+		return -1;
 	}
 
 	public void devolverMonedas() {
