@@ -19,14 +19,42 @@ public class CoffeeMach {
 
       ObjectAdapter adapter = communicator.createObjectAdapter("CoffeMach");
       ControladorMQ service = new ControladorMQ();
+      
+      alarma.AlarmaServiceImp localAlarmaService = new alarma.AlarmaServiceImp();
+      localAlarmaService.setAlarmaService(alarmaS);
+      
       service.setAlarmaService(alarmaS);
+      service.setLocalAlarmaService(localAlarmaService);
       service.setVentas(ventas);
       service.setRecetaServicePrx(recetaServicePrx);
+      Integer codMaq = leerCodMaquinaConfigurado(communicator);
+      service.setCodMaquinaConfigurado(codMaq);
+      service.inicializarCodMaquina();
+      localAlarmaService.setCodMaquina(service.getCodMaquina());
 
       service.run();
       adapter.add((ServicioAbastecimiento) service, Util.stringToIdentity("abastecer"));
       adapter.activate();
       communicator.waitForShutdown();
     }
+  }
+
+  private static Integer leerCodMaquinaConfigurado(Communicator communicator) {
+    String valor = communicator.getProperties().getProperty("CoffeeMach.CodMaquina");
+    if (valor == null || valor.trim().isEmpty()) {
+      return null;
+    }
+
+    try {
+      int codMaquina = Integer.parseInt(valor.trim());
+      if (codMaquina > 0) {
+        System.out.println("[CoffeeMach] Código de máquina cargado desde configuración: " + codMaquina);
+        return codMaquina;
+      }
+      System.out.println("[CoffeeMach] CoffeeMach.CodMaquina debe ser mayor que 0: " + valor);
+    } catch (NumberFormatException e) {
+      System.out.println("[CoffeeMach] CoffeeMach.CodMaquina no es numérico: " + valor);
+    }
+    return null;
   }
 }

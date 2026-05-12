@@ -69,9 +69,9 @@ public class ManejadorDatos {
 	 * @param idAlarma
 	 * @param fechafinal
 	 */
-	public void desactivarAlarma(int idMaquina, int idAlarma,
+	public int desactivarAlarma(int idMaquina, int idAlarma,
 			java.util.Date fechafinal) {
-		String updateAlarma = "UPDATE ALARMA_MAQUINA SET FECHA_FINAL = ? WHERE ID_ALARMA = ? AND ID_MAQUINA = ?";
+		String updateAlarma = "UPDATE ALARMA_MAQUINA SET FECHA_FINAL = ? WHERE ID_ALARMA = ? AND ID_MAQUINA = ? AND FECHA_FINAL IS NULL";
 
 		try {
 			PreparedStatement ps = conexion.prepareStatement(updateAlarma);
@@ -79,11 +79,16 @@ public class ManejadorDatos {
 			ps.setInt(2, idAlarma);
 			ps.setInt(3, idMaquina);
 
-			ps.executeUpdate();
+			int filasActualizadas = ps.executeUpdate();
+			System.out.println("[ServidorCentral] Alarmas cerradas para maquina "
+					+ idMaquina + ", tipo " + idAlarma + ": "
+					+ filasActualizadas);
+			return filasActualizadas;
 
 		} catch (SQLException e) {
 			e.printStackTrace();
 		}
+		return 0;
 	}
 
 	/**
@@ -137,8 +142,20 @@ public class ManejadorDatos {
 	public List<String> listaAsignacionMaquinasDanadas(int codigooperador) {
 		try {
 
-			String queryasign = "select m.idmaquina, m.ubicacion, am.fecha_inicial, am.id_alarma from asignacion_maquina ax, alarma_maquina am, maquina m "
-					+ "where ax.id_operador = ? and ax.id_maquina = am.id_maquina and am.fecha_final is null and am.id_maquina = m.idmaquina";
+			String queryasign = "select alarmas.id_maquina, m.ubicacion, alarmas.fecha_inicial, alarmas.id_alarma, a.nombre "
+					+ "from ( "
+					+ "select am.id_maquina, am.id_alarma, am.fecha_inicial, "
+					+ "row_number() over (partition by am.id_maquina, am.id_alarma "
+					+ "order by am.fecha_inicial desc, am.consecutivo desc) as rn "
+					+ "from alarma_maquina am "
+					+ "where am.fecha_final is null "
+					+ "and exists (select 1 from asignacion_maquina ax "
+					+ "where ax.id_operador = ? and ax.id_maquina = am.id_maquina) "
+					+ ") alarmas, maquina m, alarma a "
+					+ "where alarmas.rn = 1 "
+					+ "and alarmas.id_maquina = m.idmaquina "
+					+ "and alarmas.id_alarma = a.idalarma "
+					+ "order by alarmas.fecha_inicial desc";
 
 			PreparedStatement ps = conexion.prepareStatement(queryasign);
 			ps.setInt(1, codigooperador);
@@ -149,23 +166,18 @@ public class ManejadorDatos {
 			while (rs.next()) {
 
 				int idAlarma = rs.getInt(4);
-				String querydescripAlarma = "select nombre from alarma where idalarma = ?";
-				PreparedStatement ps3 = conexion
-						.prepareStatement(querydescripAlarma);
-				ps3.setInt(1, idAlarma);
-				ResultSet rs3 = ps3.executeQuery();
-				rs3.next();
-
 				int idMaquina = rs.getInt(1);
 				String ubicacion = rs.getString(2);
 				Date fechaIni = rs.getDate(3);
-				String descrip = rs3.getString(1);
+				String descrip = rs.getString(5);
 				String dato = idMaquina + "#" + ubicacion + "#" + fechaIni
 						+ "#" + idAlarma + "#" + descrip;
 				asignaciones.add(dato);
 
 			}
 
+			System.out.println("[ServidorCentral] Alarmas pendientes devueltas para operador "
+					+ codigooperador + ": " + asignaciones.size());
 			return asignaciones;
 		} catch (SQLException e) {
 			e.printStackTrace();

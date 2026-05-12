@@ -199,31 +199,65 @@ public class Interfaz extends JFrame {
 
 	public void interfazDeshabilitada() {
 
-		this.setBackground(Color.BLACK);
+		System.out.println("[CoffeeMach] Interfaz en modo alarma critica.");
 
-		btnIngresar100.setBackground(Color.BLACK);
-		btnIngresar200.setBackground(Color.BLACK);
-		btnIngresar500.setBackground(Color.BLACK);
-		btnOrdenar.setBackground(Color.BLACK);
-		btnMantenimiento.setBackground(Color.BLACK);
-		btnDevolver.setBackground(Color.BLACK);
-		btnVerificar.setBackground(Color.BLACK);
-		btnEnviarReporte.setBackground(Color.BLACK);
-		textAreaSaldo.setBackground(Color.BLACK);
-		textAreaInfo.setBackground(Color.BLACK);
-		textAreaAlarmas.setBackground(Color.BLACK);
-		textAreaInsumos.setBackground(Color.BLACK);
-		textAreaRecetas.setBackground(Color.BLACK);
-		textAreaDevuelta.setBackground(Color.BLACK);
-		comboBoxProducto.setBackground(Color.BLACK);
-		btnActualizar.setBackground(Color.BLACK);
+		Color colorAdvertencia = new Color(255, 245, 204);
+		Color colorNormal = Color.WHITE;
+		Color colorTexto = Color.BLACK;
 
-		this.setEnabled(false);
+		btnIngresar100.setEnabled(false);
+		btnIngresar200.setEnabled(false);
+		btnIngresar500.setEnabled(false);
+		btnOrdenar.setEnabled(false);
+		btnDevolver.setEnabled(false);
+		btnVerificar.setEnabled(false);
+		comboBoxProducto.setEnabled(false);
+
+		btnMantenimiento.setEnabled(true);
+		btnEnviarReporte.setEnabled(true);
+		btnActualizar.setEnabled(true);
+
+		this.setBackground(colorNormal);
+		btnMantenimiento.setBackground(colorNormal);
+		btnEnviarReporte.setBackground(colorNormal);
+		btnActualizar.setBackground(colorNormal);
+		textAreaSaldo.setBackground(colorAdvertencia);
+		textAreaInfo.setBackground(colorNormal);
+		textAreaAlarmas.setBackground(colorAdvertencia);
+		textAreaInsumos.setBackground(colorNormal);
+		textAreaRecetas.setBackground(colorNormal);
+		textAreaDevuelta.setBackground(colorNormal);
+		comboBoxProducto.setBackground(colorNormal);
+
+		textAreaSaldo.setForeground(colorTexto);
+		textAreaInfo.setForeground(colorTexto);
+		textAreaAlarmas.setForeground(colorTexto);
+		textAreaInsumos.setForeground(colorTexto);
+		textAreaRecetas.setForeground(colorTexto);
+		textAreaDevuelta.setForeground(colorTexto);
+
+		String mensajeBloqueo = "[CoffeeMach] Maquina bloqueada por alarma critica. Esperando logistica/mantenimiento.";
+		if (!textAreaAlarmas.getText().contains(mensajeBloqueo)) {
+			textAreaAlarmas.setText(textAreaAlarmas.getText() + mensajeBloqueo + "\n");
+		}
 	}
 
 	public void interfazHabilitada() {
 
+		System.out.println("[CoffeeMach] Interfaz recuperada.");
+
 		this.setBackground(Color.WHITE);
+
+		btnIngresar100.setEnabled(true);
+		btnIngresar200.setEnabled(true);
+		btnIngresar500.setEnabled(true);
+		btnOrdenar.setEnabled(true);
+		btnDevolver.setEnabled(true);
+		btnVerificar.setEnabled(true);
+		comboBoxProducto.setEnabled(true);
+		btnMantenimiento.setEnabled(true);
+		btnEnviarReporte.setEnabled(true);
+		btnActualizar.setEnabled(true);
 
 		btnIngresar100.setBackground(Color.WHITE);
 		btnIngresar200.setBackground(Color.WHITE);
@@ -233,6 +267,7 @@ public class Interfaz extends JFrame {
 		btnDevolver.setBackground(Color.WHITE);
 		btnVerificar.setBackground(Color.WHITE);
 		btnEnviarReporte.setBackground(Color.WHITE);
+		btnActualizar.setBackground(Color.WHITE);
 		textAreaSaldo.setBackground(Color.WHITE);
 		textAreaInfo.setBackground(Color.WHITE);
 		textAreaAlarmas.setBackground(Color.WHITE);
@@ -240,7 +275,13 @@ public class Interfaz extends JFrame {
 		textAreaRecetas.setBackground(Color.WHITE);
 		textAreaDevuelta.setBackground(Color.WHITE);
 		comboBoxProducto.setBackground(Color.WHITE);
-		this.setEnabled(true);
+
+		textAreaSaldo.setForeground(Color.BLACK);
+		textAreaInfo.setForeground(Color.BLACK);
+		textAreaAlarmas.setForeground(Color.BLACK);
+		textAreaInsumos.setForeground(Color.BLACK);
+		textAreaRecetas.setForeground(Color.BLACK);
+		textAreaDevuelta.setForeground(Color.BLACK);
 	}
 
 	public JButton getBtnIngresar100() {

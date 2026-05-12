@@ -10,6 +10,7 @@ import java.util.*;
 import java.io.*;
 import java.util.Map.Entry;
 import javax.swing.JFrame;
+import javax.swing.SwingUtilities;
 import java.awt.event.*;
 import interfazUsuario.Interfaz;
 import com.zeroc.Ice.Current;
@@ -22,6 +23,7 @@ import ingrediente.IngredienteRepositorio;
 public class ControladorMQ implements Runnable, ServicioAbastecimiento {
 
 	private AlarmaServicePrx alarmaServicePrx;
+	private alarma.AlarmaService localAlarmaService;
 	private VentaServicePrx ventasService;
 
 	// @Reference
@@ -34,6 +36,14 @@ public class ControladorMQ implements Runnable, ServicioAbastecimiento {
 	private RecetaRepositorio recetas = RecetaRepositorio.getInstance();
 	// @Referenc
 	private VentaRepositorio ventas = VentaRepositorio.getInstance();
+
+	public void setLocalAlarmaService(alarma.AlarmaService localAlarmaService) {
+		this.localAlarmaService = localAlarmaService;
+	}
+
+	public int getCodMaquina() {
+		return codMaquina;
+	}
 
 	/**
 	 * @param ventas the ventas to set
@@ -57,6 +67,7 @@ public class ControladorMQ implements Runnable, ServicioAbastecimiento {
 
 	private Interfaz frame;
 	private int codMaquina;
+	private Integer codMaquinaConfigurado;
 	private double suma;
 
 	public void run() {
@@ -74,92 +85,280 @@ public class ControladorMQ implements Runnable, ServicioAbastecimiento {
 		eventos();
 	}
 
+	public void setCodMaquinaConfigurado(Integer codMaquinaConfigurado) {
+		this.codMaquinaConfigurado = codMaquinaConfigurado;
+	}
+
+	public void inicializarCodMaquina() {
+		codMaquina = cargarCodMaquina();
+		if (codMaquina <= 0) {
+			String mensaje = "[CoffeeMach] No se pudo determinar codMaquina. Configure CoffeeMach.CodMaquina o cree codMaquina.cafe.";
+			System.out.println(mensaje);
+			throw new IllegalStateException(mensaje);
+		}
+	}
+
+	private void ejecutarEnEDT(Runnable accion) {
+		if (SwingUtilities.isEventDispatchThread()) {
+			accion.run();
+		} else {
+			SwingUtilities.invokeLater(accion);
+		}
+	}
+
+	private void ejecutarRemotoAsync(final String nombreOperacion, final Runnable operacion) {
+		System.out.println("[CoffeeMach] Notificación remota programada: " + nombreOperacion);
+		Thread t = new Thread(new Runnable() {
+			public void run() {
+				try {
+					operacion.run();
+					System.out.println("[CoffeeMach] Notificación remota completada: " + nombreOperacion);
+				} catch (Exception e) {
+					System.err.println("[CoffeeMach] Error en notificación remota "
+							+ nombreOperacion + ": " + e);
+					ejecutarEnEDT(new Runnable() {
+						public void run() {
+							if (frame != null && frame.getTextAreaAlarmas() != null) {
+								frame.getTextAreaAlarmas().append("[CoffeeMach] Error notificando al servidor: "
+										+ nombreOperacion + "\n");
+							}
+						}
+					});
+				}
+			}
+		}, "CoffeeMach-RemoteNotify-" + nombreOperacion);
+		t.setDaemon(true);
+		t.start();
+	}
+
 	@Override
 	public void abastecer(int codMaquina, int idAlarma, Current current) {
-		// TODO Auto-generated method stub
 		int cantidad = 0;
-		System.out.println("Entra a abastecer");
+		System.out.println("[CoffeeMach] Solicitud de abastecimiento recibida. maquina="
+				+ codMaquina + ", tipoAlarma=" + idAlarma
+				+ ", maquinaLocal=" + this.codMaquina);
 
-		System.out.println(codMaquina + "-" + idAlarma + "-" + this.codMaquina);
+		if (codMaquina != this.codMaquina) {
+			String mensaje = "[CoffeeMach] Solicitud rechazada: maquina destino "
+					+ codMaquina + " no coincide con maquina local "
+					+ this.codMaquina;
+			System.out.println(mensaje);
+			throw new RuntimeException(mensaje);
+		}
 
-		if (codMaquina == this.codMaquina) {
+		if (alarmaServicePrx == null) {
+			String mensaje = "[CoffeeMach] No se puede resolver la alarma: alarmaServicePrx es null.";
+			System.out.println(mensaje);
+			throw new RuntimeException(mensaje);
+		}
 
-			System.out.println("Entra al primer if");
+		switch (idAlarma) {
+			case 1:
+				cantidad += recargarIngredienteConCantidad("Agua");
+				cantidad += recargarIngredienteConCantidad("Cafe");
+				cantidad += recargarIngredienteConCantidad("Azucar");
+				System.out.println("[CoffeeMach] Tipo 1 recibido: recarga conservadora de ingredientes principales.");
+				break;
+			case 2:
+				cantidad = recargarMoneda("100", 20);
+				break;
+			case 3:
+				cantidad = recargarMoneda("200", 20);
+				break;
+			case 4:
+				cantidad = recargarMoneda("500", 20);
+				break;
+			case 5:
+				cantidad = recargarIngredienteConCantidad("Vaso");
+				break;
+			case 6:
+				System.out.println("[CoffeeMach] Tipo 6 recibido: mantenimiento/mal funcionamiento atendido.");
+				break;
+			case 7:
+				cantidad = recargarMoneda("500", 20);
+				break;
+			case 8:
+			case 12:
+				cantidad = recargarIngredienteConCantidad("Agua");
+				break;
+			case 9:
+			case 13:
+				cantidad = recargarIngredienteConCantidad("Cafe");
+				break;
+			case 10:
+			case 14:
+				cantidad = recargarIngredienteConCantidad("Azucar");
+				break;
+			case 11:
+			case 15:
+				cantidad = recargarIngredienteConCantidad("Vaso");
+				break;
+			default:
+				String mensaje = "[CoffeeMach] Tipo de alarma no reconocido: "
+						+ idAlarma + ". No se recargo ningun recurso.";
+				System.out.println(mensaje);
+				throw new RuntimeException(mensaje);
+		}
 
-			if (idAlarma == 1) {
-				// Habilita Interfaz
-			}
+		System.out.println("[CoffeeMach] Tipo central recibido: " + idAlarma);
+		quitarAlarmasLocalesRelacionadas(idAlarma);
 
-			else if (idAlarma == 2 | idAlarma == 3) {
-				// Depositos Monedas
-				DepositoMonedas moneda = monedas.findByKey("100");
-				moneda.setCantidad(20);
-				monedas.addElement("100", moneda);
+		boolean habilitarInterfaz = alarmas.getValues().isEmpty() && frame != null;
+		if (habilitarInterfaz) {
+			System.out.println("[CoffeeMach] UI se habilita porque no quedan alarmas locales.");
+		} else {
+			System.out.println("[CoffeeMach] UI permanece en alarma porque aun existen alarmas locales: "
+					+ alarmas.getkeys());
+		}
 
-				if (idAlarma == 3) {
+		// Respaldo
+		respaldarMaq();
+		ejecutarEnEDT(new Runnable() {
+			public void run() {
+				System.out.println("[CoffeeMach] Refrescando interfaz desde EDT. enEDT="
+						+ SwingUtilities.isEventDispatchThread());
 
+				if (habilitarInterfaz) {
+					frame.setEnabled(true);
+					frame.interfazHabilitada();
+
+					System.out.println("[CoffeeMach] Interfaz habilitada: no quedan alarmas locales.");
 				}
 
-			} else if (idAlarma == 4 | idAlarma == 5) {
-				// Depositos Monedas
-				DepositoMonedas moneda = monedas.findByKey("200");
-				moneda.setCantidad(20);
-				monedas.addElement("200", moneda);
+				actualizarRecetasGraf();
+				actualizarInsumosGraf();
+				actualizarAlarmasGraf();
 			}
+		});
 
-			else if (idAlarma == 6 | idAlarma == 7) {
-				// Depositos Monedas
-				DepositoMonedas moneda = monedas.findByKey("500");
-				moneda.setCantidad(20);
-				monedas.addElement("500", moneda);
-			}
+		// ResetAlarmas
 
-			else if (idAlarma == 8 | idAlarma == 12) {
-				recargarIngredienteEspecifico("Agua");
-			}
-
-			else if (idAlarma == 9 | idAlarma == 13) {
-				recargarIngredienteEspecifico("Cafe");
-			}
-
-			else if (idAlarma == 10 | idAlarma == 14) {
-				recargarIngredienteEspecifico("Azucar");
-			}
-
-			else if (idAlarma == 11 | idAlarma == 15) {
-				recargarIngredienteEspecifico("Vaso");
-			}
-
-			quitarAlarma(idAlarma + "");
-
-			if (alarmas.getValues().isEmpty()) {
-				frame.setEnabled(true);
-				frame.interfazHabilitada();
-
-				System.out.println("Entra al if de habilitacion");
-			}
-
-			// Respaldo
-			respaldarMaq();
-			actualizarRecetasGraf();
-			actualizarInsumosGraf();
-			actualizarAlarmasGraf();
-
-			// ResetAlarmas
-
-			// Envio a Servidor
-			alarmaServicePrx.recibirNotificacionAbastesimiento(codMaquina, idAlarma + "", cantidad);
-		}
+		// Envio a Servidor
+		alarmaServicePrx.recibirNotificacionAbastesimiento(codMaquina, idAlarma + "", cantidad);
+		System.out.println("[CoffeeMach] Notificacion de abastecimiento enviada. maquina="
+				+ codMaquina + ", tipoAlarma=" + idAlarma
+				+ ", cantidad=" + cantidad);
 	}
 
 	public void quitarAlarma(String tipo) {
 		alarmas.removeElement(tipo);
 	}
 
+	private void quitarAlarmasLocalesRelacionadas(int tipoAlarmaCentralOlocal) {
+		List<String> alarmasRemover = new ArrayList<String>();
+
+		switch (tipoAlarmaCentralOlocal) {
+			case 1:
+				if (existeAlgunaAlarma("8", "9", "10", "12", "13", "14")) {
+					agregarAlarmas(alarmasRemover, "8", "9", "10", "12", "13", "14");
+				}
+				break;
+			case 2:
+				agregarAlarmas(alarmasRemover, "2", "3");
+				break;
+			case 3:
+				agregarAlarmas(alarmasRemover, "4", "5");
+				break;
+			case 4:
+				agregarAlarmas(alarmasRemover, "6", "7");
+				break;
+			case 5:
+				agregarAlarmas(alarmasRemover, "11", "15");
+				break;
+			case 6:
+				agregarAlarmas(alarmasRemover, "20");
+				break;
+			case 7:
+				agregarAlarmas(alarmasRemover, "6", "7");
+				break;
+			case 8:
+			case 12:
+				agregarAlarmas(alarmasRemover, "8", "12");
+				break;
+			case 9:
+			case 13:
+				agregarAlarmas(alarmasRemover, "9", "13");
+				break;
+			case 10:
+			case 14:
+				agregarAlarmas(alarmasRemover, "10", "14");
+				break;
+			case 11:
+			case 15:
+				agregarAlarmas(alarmasRemover, "11", "15");
+				break;
+			default:
+				agregarAlarmas(alarmasRemover, tipoAlarmaCentralOlocal + "");
+				break;
+		}
+
+		List<String> removidas = new ArrayList<String>();
+		for (String tipo : alarmasRemover) {
+			if (alarmas.findByKey(tipo) != null) {
+				quitarAlarma(tipo);
+				removidas.add(tipo);
+			}
+		}
+
+		System.out.println("[CoffeeMach] Alarmas locales removidas: " + removidas);
+		System.out.println("[CoffeeMach] Alarmas locales restantes: " + alarmas.getValues().size());
+	}
+
+	private boolean existeAlgunaAlarma(String... tipos) {
+		for (String tipo : tipos) {
+			if (alarmas.findByKey(tipo) != null) {
+				return true;
+			}
+		}
+		return false;
+	}
+
+	private void agregarAlarmas(List<String> alarmasRemover, String... tipos) {
+		for (String tipo : tipos) {
+			if (!alarmasRemover.contains(tipo)) {
+				alarmasRemover.add(tipo);
+			}
+		}
+	}
+
 	public void recargarIngredienteEspecifico(String ingrediente) {
+		recargarIngredienteConCantidad(ingrediente);
+	}
+
+	private int recargarMoneda(String denominacion, int cantidadObjetivo) {
+		DepositoMonedas moneda = monedas.findByKey(denominacion);
+		if (moneda == null) {
+			System.out.println("[CoffeeMach] No se recargo moneda " + denominacion
+					+ ": deposito no existe.");
+			return 0;
+		}
+
+		int cantidadAnterior = moneda.getCantidad();
+		moneda.setCantidad(cantidadObjetivo);
+		monedas.addElement(denominacion, moneda);
+		int cantidadRecargada = Math.max(0, moneda.getCantidad() - cantidadAnterior);
+		System.out.println("[CoffeeMach] Moneda " + denominacion + " recargada. anterior="
+				+ cantidadAnterior + ", actual=" + moneda.getCantidad()
+				+ ", recargada=" + cantidadRecargada);
+		return cantidadRecargada;
+	}
+
+	private int recargarIngredienteConCantidad(String ingrediente) {
 		Ingrediente ing = ingredientes.findByKey(ingrediente);
+		if (ing == null) {
+			System.out.println("[CoffeeMach] No se recargo insumo " + ingrediente
+					+ ": no existe en repositorio local.");
+			return 0;
+		}
+
+		double cantidadAnterior = ing.getCantidad();
 		ing.setCantidad(ing.getMaximo());
 		ingredientes.addElement(ingrediente, ing);
+		int cantidadRecargada = (int) Math.max(0, ing.getCantidad() - cantidadAnterior);
+		System.out.println("[CoffeeMach] Insumo " + ingrediente + " recargado. anterior="
+				+ cantidadAnterior + ", actual=" + ing.getCantidad()
+				+ ", recargada=" + cantidadRecargada);
+		return cantidadRecargada;
 	}
 
 	public void eventos() {
@@ -307,7 +506,7 @@ public class ControladorMQ implements Runnable, ServicioAbastecimiento {
 
 				// Enviar Alarma por SCA
 
-				Alarma temp = new Alarma("1", "Se requiere mantenimiento",
+				Alarma temp = new Alarma("20", "Se requiere mantenimiento",
 						new Date());
 
 				frame.getTextAreaAlarmas().setText(
@@ -315,9 +514,18 @@ public class ControladorMQ implements Runnable, ServicioAbastecimiento {
 								+ "Se genero una alarma de: Mantenimiento"
 								+ "\n");
 
-				alarmaServicePrx.recibirNotificacionMalFuncionamiento(codMaquina, "Se requiere mantenimiento");
+				ejecutarRemotoAsync("notificarMalFuncionamiento", new Runnable() {
+					public void run() {
+						if (localAlarmaService != null) {
+							localAlarmaService.notificarMalFuncionamiento();
+						} else {
+							alarmaServicePrx.recibirNotificacionMalFuncionamiento(codMaquina,
+									"Se requiere mantenimiento");
+						}
+					}
+				});
 
-				alarmas.addElement("1", temp);
+				alarmas.addElement("20", temp);
 
 				frame.interfazDeshabilitada();
 
@@ -335,7 +543,11 @@ public class ControladorMQ implements Runnable, ServicioAbastecimiento {
 					System.out.println(arregloVentas[i]);
 				}
 
-				ventasService.registrarVenta(codMaquina, arregloVentas);
+				ejecutarRemotoAsync("registrarVenta", new Runnable() {
+					public void run() {
+						ventasService.registrarVenta(codMaquina, arregloVentas);
+					}
+				});
 
 			}
 		});
@@ -343,7 +555,11 @@ public class ControladorMQ implements Runnable, ServicioAbastecimiento {
 		frame.getBtnActualizar().addActionListener(new ActionListener() {
 			public void actionPerformed(ActionEvent e) {
 
-				cargarRecetaMaquinas();
+				ejecutarRemotoAsync("consultarProductos", new Runnable() {
+					public void run() {
+						cargarRecetaMaquinas();
+					}
+				});
 
 			}
 		});
@@ -383,9 +599,13 @@ public class ControladorMQ implements Runnable, ServicioAbastecimiento {
 
 		// Actualizar Archivo Plano
 		recetas.saveData();
-		actualizarInsumosGraf();
-		actualizarRecetasGraf();
-		actualizarRecetasCombo();
+		ejecutarEnEDT(new Runnable() {
+			public void run() {
+				actualizarInsumosGraf();
+				actualizarRecetasGraf();
+				actualizarRecetasCombo();
+			}
+		});
 	}
 
 	public void respaldarMaq() {
@@ -415,7 +635,12 @@ public class ControladorMQ implements Runnable, ServicioAbastecimiento {
 
 					// Enviar SCA
 
-					alarmaServicePrx.recibirNotificacionEscasezIngredientes(ing.getNombre(), codMaquina);
+					final String nombreIngrediente = ing.getNombre();
+					ejecutarRemotoAsync("recibirNotificacionEscasezIngredientes", new Runnable() {
+						public void run() {
+							alarmaServicePrx.recibirNotificacionEscasezIngredientes(nombreIngrediente, codMaquina);
+						}
+					});
 
 					frame.getTextAreaAlarmas().setText(
 							frame.getTextAreaAlarmas().getText()
@@ -435,7 +660,12 @@ public class ControladorMQ implements Runnable, ServicioAbastecimiento {
 
 				// Enviar SCA
 
-				alarmaServicePrx.recibirNotificacionEscasezIngredientes(ing.getNombre(), codMaquina);
+				final String nombreIngredienteCritico = ing.getNombre();
+				ejecutarRemotoAsync("recibirNotificacionEscasezIngredientes", new Runnable() {
+					public void run() {
+						alarmaServicePrx.recibirNotificacionEscasezIngredientes(nombreIngredienteCritico, codMaquina);
+					}
+				});
 
 				frame.getTextAreaAlarmas().setText(
 						frame.getTextAreaAlarmas().getText()
@@ -462,7 +692,9 @@ public class ControladorMQ implements Runnable, ServicioAbastecimiento {
 	}
 
 	public void arrancarMaquina() {
-		codMaquina = quemarCodMaquina();
+		if (codMaquina <= 0) {
+			inicializarCodMaquina();
+		}
 		// Interfaz
 		actualizarRecetasCombo();
 		actualizarRecetasGraf();
@@ -542,33 +774,46 @@ public class ControladorMQ implements Runnable, ServicioAbastecimiento {
 		}
 	}
 
-	private int quemarCodMaquina() {
-		int retorno = -2;
-
-		FileInputStream fstream;
-		try {
-			String path = "codMaquina.cafe";
-			File file = new File(path);
-
-			fstream = new FileInputStream(file);
-
-			DataInputStream entrada = new DataInputStream(fstream);
-
-			BufferedReader buffer = new BufferedReader(new InputStreamReader(
-					entrada));
-
-			retorno = Integer.parseInt(buffer.readLine());
-
-			entrada.close();
-
-		} catch (IOException e1) {
-			// TODO Auto-generated catch block
-			e1.printStackTrace();
+	private int cargarCodMaquina() {
+		if (codMaquinaConfigurado != null && codMaquinaConfigurado > 0) {
+			return codMaquinaConfigurado;
 		}
 
-		System.out.println(retorno + " RETORRRNO");
+		return cargarCodMaquinaDesdeArchivo();
+	}
 
-		return retorno;
+	private int cargarCodMaquinaDesdeArchivo() {
+		String[] rutas = {
+				"codMaquina.cafe",
+				"coffeeMach/codMaquina.cafe",
+				"../codMaquina.cafe",
+				"src/main/resources/codMaquina.cafe"
+		};
+
+		for (String ruta : rutas) {
+			File archivo = new File(ruta);
+			if (!archivo.isFile()) {
+				continue;
+			}
+
+			try (BufferedReader buffer = new BufferedReader(new FileReader(archivo))) {
+				String linea = buffer.readLine();
+				int cod = Integer.parseInt(linea.trim());
+				if (cod > 0) {
+					System.out.println("[CoffeeMach] Código de máquina cargado desde archivo "
+							+ archivo.getPath() + ": " + cod);
+					return cod;
+				}
+				System.out.println("[CoffeeMach] Código de máquina inválido en "
+						+ archivo.getPath() + ": " + linea);
+			} catch (IOException | NumberFormatException e) {
+				System.out.println("[CoffeeMach] No se pudo leer código de máquina desde "
+						+ archivo.getPath() + ": " + e.getMessage());
+			}
+		}
+
+		System.out.println("[CoffeeMach] No se pudo cargar código de máquina.");
+		return -1;
 	}
 
 	public void devolverMonedas() {
@@ -628,7 +873,11 @@ public class ControladorMQ implements Runnable, ServicioAbastecimiento {
 			if (alarmas.findByKey("2") == null) {
 				alarmas.addElement("2", alMon);
 
-				alarmaServicePrx.recibirNotificacionInsuficienciaMoneda(Moneda.CIEN, codMaquina);
+				ejecutarRemotoAsync("recibirNotificacionInsuficienciaMoneda-CIEN", new Runnable() {
+					public void run() {
+						alarmaServicePrx.recibirNotificacionInsuficienciaMoneda(Moneda.CIEN, codMaquina);
+					}
+				});
 				frame.getTextAreaAlarmas().setText(
 						frame.getTextAreaAlarmas().getText()
 								+ "Se genero una alarma de: Monedas de 100"
@@ -644,7 +893,11 @@ public class ControladorMQ implements Runnable, ServicioAbastecimiento {
 			alarmas.addElement("3", alMon);
 
 			// Enviar SCA
-			alarmaServicePrx.recibirNotificacionInsuficienciaMoneda(Moneda.CIEN, codMaquina);
+			ejecutarRemotoAsync("recibirNotificacionInsuficienciaMoneda-CIEN", new Runnable() {
+				public void run() {
+					alarmaServicePrx.recibirNotificacionInsuficienciaMoneda(Moneda.CIEN, codMaquina);
+				}
+			});
 
 			frame.getTextAreaAlarmas().setText(
 					frame.getTextAreaAlarmas().getText()
@@ -665,7 +918,11 @@ public class ControladorMQ implements Runnable, ServicioAbastecimiento {
 
 				// Enviar SCA
 
-				alarmaServicePrx.recibirNotificacionInsuficienciaMoneda(Moneda.DOCIENTOS, codMaquina);
+				ejecutarRemotoAsync("recibirNotificacionInsuficienciaMoneda-DOCIENTOS", new Runnable() {
+					public void run() {
+						alarmaServicePrx.recibirNotificacionInsuficienciaMoneda(Moneda.DOCIENTOS, codMaquina);
+					}
+				});
 
 				frame.getTextAreaAlarmas().setText(
 						frame.getTextAreaAlarmas().getText()
@@ -683,7 +940,11 @@ public class ControladorMQ implements Runnable, ServicioAbastecimiento {
 
 			// Enviar SCA
 
-			alarmaServicePrx.recibirNotificacionInsuficienciaMoneda(Moneda.DOCIENTOS, codMaquina);
+			ejecutarRemotoAsync("recibirNotificacionInsuficienciaMoneda-DOCIENTOS", new Runnable() {
+				public void run() {
+					alarmaServicePrx.recibirNotificacionInsuficienciaMoneda(Moneda.DOCIENTOS, codMaquina);
+				}
+			});
 
 			frame.getTextAreaAlarmas()
 					.setText(
@@ -705,7 +966,11 @@ public class ControladorMQ implements Runnable, ServicioAbastecimiento {
 
 				// Enviar SCA
 
-				alarmaServicePrx.recibirNotificacionInsuficienciaMoneda(Moneda.QUINIENTOS, codMaquina);
+				ejecutarRemotoAsync("recibirNotificacionInsuficienciaMoneda-QUINIENTOS", new Runnable() {
+					public void run() {
+						alarmaServicePrx.recibirNotificacionInsuficienciaMoneda(Moneda.QUINIENTOS, codMaquina);
+					}
+				});
 
 				frame.getTextAreaAlarmas().setText(
 						frame.getTextAreaAlarmas().getText()
@@ -720,7 +985,11 @@ public class ControladorMQ implements Runnable, ServicioAbastecimiento {
 					"ESTADO CRITICO: Faltan monedas de 500", new Date());
 			alarmas.addElement("7", alMon);
 
-			alarmaServicePrx.recibirNotificacionInsuficienciaMoneda(Moneda.QUINIENTOS, codMaquina);
+			ejecutarRemotoAsync("recibirNotificacionInsuficienciaMoneda-QUINIENTOS", new Runnable() {
+				public void run() {
+					alarmaServicePrx.recibirNotificacionInsuficienciaMoneda(Moneda.QUINIENTOS, codMaquina);
+				}
+			});
 
 			frame.getTextAreaAlarmas().setText(
 					frame.getTextAreaAlarmas().getText()
